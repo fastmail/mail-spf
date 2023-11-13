@@ -22,7 +22,6 @@ use strict;
 use base 'Mail::SPF::Base';
 
 use Error ':try';
-use Net::DNS;
 use Net::DNS::Resolver;
 
 use Mail::SPF::MacroString;

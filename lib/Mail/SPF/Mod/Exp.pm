@@ -19,8 +19,6 @@ Mail::SPF::Mod::Exp - SPF record C<exp> modifier class
 use warnings;
 use strict;
 
-use Net::DNS;
-
 use Mail::SPF::Mod;
 use base 'Mail::SPF::GlobalMod';
 
