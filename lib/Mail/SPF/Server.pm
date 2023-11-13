@@ -22,6 +22,7 @@ use strict;
 use base 'Mail::SPF::Base';
 
 use Error ':try';
+use Net::DNS;
 use Net::DNS::Resolver;
 
 use Mail::SPF::MacroString;
@@ -510,10 +511,19 @@ sub get_acceptable_records_from_packet {
         # (This may be too simplistic for future revisions of SPF.)
 
     my @records;
+
     foreach my $rr ($packet->answer) {
         next if $rr->type ne $rr_type;  # Ignore RRs of unexpected type.
 
-        my $text = join('', $rr->char_str_list);
+        my $text;
+        # join with no intervening spaces, RFC 6376
+        if ( Net::DNS->VERSION >= 0.69 ) {
+          # must call txtdata() in a list context
+          $text = join '', $rr->txtdata;
+        } else {
+          # char_str_list method is 'historical'
+          $text = join('', $rr->char_str_list);
+        }
         my $record;
 
         # Try to parse RR as each of the requested record versions,

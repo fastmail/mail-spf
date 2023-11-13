@@ -19,6 +19,8 @@ Mail::SPF::Mod::Exp - SPF record C<exp> modifier class
 use warnings;
 use strict;
 
+use Net::DNS;
+
 use Mail::SPF::Mod;
 use base 'Mail::SPF::GlobalMod';
 
@@ -145,12 +147,27 @@ sub process {
         @txt_rrs == 1
             or $server->throw_result('permerror', $request,
                 "Redundant authority explanation strings found at domain '$exp_domain'");  # RFC 4408, 6.2/4
-        my $explanation = Mail::SPF::MacroString->new(
+
+        my $explanation;
+        # join with no intervening spaces, RFC 6376
+        if ( Net::DNS->VERSION >= 0.69 ) {
+          # must call txtdata() in a list context
+          $explanation = Mail::SPF::MacroString->new(
+            text            => join('', $txt_rrs[0]->txtdata),
+            server          => $server,
+            request         => $request,
+            is_explanation  => TRUE
+          );
+        } else {
+          # char_str_list method is 'historical'
+          $explanation = Mail::SPF::MacroString->new(
             text            => join('', $txt_rrs[0]->char_str_list),
             server          => $server,
             request         => $request,
             is_explanation  => TRUE
-        );
+          );
+        }
+
         $request->state('authority_explanation', $explanation);
     }
     # Ignore DNS and other errors:
