@@ -148,25 +148,19 @@ sub process {
             or $server->throw_result('permerror', $request,
                 "Redundant authority explanation strings found at domain '$exp_domain'");  # RFC 4408, 6.2/4
 
-        my $explanation;
+        # char_str_list method is 'historical', use as a fallback for Net::DNS prior to 0.69
+        # where txtdata is not available.
         # join with no intervening spaces, RFC 6376
-        if ( Net::DNS->VERSION >= 0.69 ) {
-          # must call txtdata() in a list context
-          $explanation = Mail::SPF::MacroString->new(
-            text            => join('', $txt_rrs[0]->txtdata),
-            server          => $server,
-            request         => $request,
-            is_explanation  => TRUE
-          );
-        } else {
-          # char_str_list method is 'historical'
-          $explanation = Mail::SPF::MacroString->new(
-            text            => join('', $txt_rrs[0]->char_str_list),
-            server          => $server,
-            request         => $request,
-            is_explanation  => TRUE
-          );
-        }
+        # must call txtdata() in a list context
+        my $text = $txt_rrs[0]->can('txtdata')
+                 ? join('', $txt_rrs[0]->txtdata)
+                 : join('', $txt_rrs[0]->char_str_list);
+        my $explanation = Mail::SPF::MacroString->new(
+          text            => $text,
+          server          => $server,
+          request         => $request,
+          is_explanation  => TRUE
+        );
 
         $request->state('authority_explanation', $explanation);
     }

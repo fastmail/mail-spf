@@ -515,15 +515,13 @@ sub get_acceptable_records_from_packet {
     foreach my $rr ($packet->answer) {
         next if $rr->type ne $rr_type;  # Ignore RRs of unexpected type.
 
-        my $text;
+        # char_str_list method is 'historical', use as a fallback for Net::DNS prior to 0.69
+        # where txtdata is not available.
         # join with no intervening spaces, RFC 6376
-        if ( Net::DNS->VERSION >= 0.69 ) {
-          # must call txtdata() in a list context
-          $text = join '', $rr->txtdata;
-        } else {
-          # char_str_list method is 'historical'
-          $text = join('', $rr->char_str_list);
-        }
+        # must call txtdata() in a list context
+        my $text = $rr->can('txtdata')
+                 ? join('', $rr->txtdata)
+                 : join('', $rr->char_str_list);
         my $record;
 
         # Try to parse RR as each of the requested record versions,
