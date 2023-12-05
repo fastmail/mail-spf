@@ -145,12 +145,21 @@ sub process {
         @txt_rrs == 1
             or $server->throw_result('permerror', $request,
                 "Redundant authority explanation strings found at domain '$exp_domain'");  # RFC 4408, 6.2/4
+
+        # char_str_list method is 'historical', use as a fallback for Net::DNS prior to 0.69
+        # where txtdata is not available.
+        # join with no intervening spaces, RFC 6376
+        # must call txtdata() in a list context
+        my $text = $txt_rrs[0]->can('txtdata')
+                 ? join('', $txt_rrs[0]->txtdata)
+                 : join('', $txt_rrs[0]->char_str_list);
         my $explanation = Mail::SPF::MacroString->new(
-            text            => join('', $txt_rrs[0]->char_str_list),
-            server          => $server,
-            request         => $request,
-            is_explanation  => TRUE
+          text            => $text,
+          server          => $server,
+          request         => $request,
+          is_explanation  => TRUE
         );
+
         $request->state('authority_explanation', $explanation);
     }
     # Ignore DNS and other errors:

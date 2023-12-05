@@ -510,10 +510,17 @@ sub get_acceptable_records_from_packet {
         # (This may be too simplistic for future revisions of SPF.)
 
     my @records;
+
     foreach my $rr ($packet->answer) {
         next if $rr->type ne $rr_type;  # Ignore RRs of unexpected type.
 
-        my $text = join('', $rr->char_str_list);
+        # char_str_list method is 'historical', use as a fallback for Net::DNS prior to 0.69
+        # where txtdata is not available.
+        # join with no intervening spaces, RFC 6376
+        # must call txtdata() in a list context
+        my $text = $rr->can('txtdata')
+                 ? join('', $rr->txtdata)
+                 : join('', $rr->char_str_list);
         my $record;
 
         # Try to parse RR as each of the requested record versions,
