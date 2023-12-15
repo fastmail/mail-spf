@@ -4,6 +4,8 @@
 #   ! = Changed something significant, or removed a feature
 #   * = Fixed a bug, or made a minor improvement
 
+{{$NEXT}}
+
 --- 2.009 (2013-07-21 03:30)
 
   Mail::SPF:
