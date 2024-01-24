@@ -38,12 +38,12 @@ install-stamp:
 	
 	# Manually create man-pages for sbin/ executables:
 	mkdir -p $(TMP)/usr/share/man/man8
-	pod2man -s8p $(TMP)/usr/sbin/spfd           $(TMP)/usr/share/man/man8/spfd.8p
+	pod2man -s8p $(TMP)/usr/bin/spfd            $(TMP)/usr/share/man/man8/spfd.8p
 	
 	# Rename the `spfquery` and `spfd` tools and their man-pages for the alternatives system:
 	mv $(TMP)/usr/bin/spfquery                  $(TMP)/usr/bin/spfquery.$(SOURCE_PACKAGE)
 	mv $(TMP)/usr/share/man/man1/spfquery.1p    $(TMP)/usr/share/man/man1/spfquery.$(SOURCE_PACKAGE).1p
-	mv $(TMP)/usr/sbin/spfd                     $(TMP)/usr/sbin/spfd.$(SOURCE_PACKAGE)
+	mv $(TMP)/usr/bin/spfd                      $(TMP)/usr/sbin/spfd.$(SOURCE_PACKAGE)
 	mv $(TMP)/usr/share/man/man8/spfd.8p        $(TMP)/usr/share/man/man8/spfd.$(SOURCE_PACKAGE).8p
 	
 	touch install-stamp
