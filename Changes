@@ -1,8 +1,14 @@
-# Legend:
-# --- = A new release
-#   + = Added a feature (in a backwards compatible way)
-#   ! = Changed something significant, or removed a feature
-#   * = Fixed a bug, or made a minor improvement
+{{$NEXT}}
+
+  - Fix pod in Mail::SPF::Util (RT#93241)
+    Thanks to rwfranks@acm.org and GBECHIS@cpan.org
+
+  - Fixes char_str_list is not a valid sub in new Net::DNS (RT#149825)
+    Reworked from patch supplied with thanks by GBECHIS@cpan.org
+
+  - BREAKING CHANGE: spfd is now installed in /bin instead of /sbin
+    As a result Mail::SPF now respects an install prefix and may be
+    more easily installed in a non root and/or local lib environment.
 
 --- 2.009 (2013-07-21 03:30)
 

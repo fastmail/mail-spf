@@ -28,7 +28,7 @@ use overload
     fallback    => 1;
 
 use Error ':try';
-use URI::Escape ();
+use URI::Escape 1.13 ();
 
 use Mail::SPF::Util;
 

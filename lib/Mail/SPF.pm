@@ -21,7 +21,7 @@ Mail::SPF - An object-oriented implementation of Sender Policy Framework
 
 =cut
 
-use version; our $VERSION = qv('2.009');
+# VERSION
 
 use warnings;
 use strict;
