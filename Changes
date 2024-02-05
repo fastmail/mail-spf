@@ -1,5 +1,7 @@
 {{$NEXT}}
 
+3.20240205 2024-02-05 UTC
+
   - Fix pod in Mail::SPF::Util (RT#93241)
     Thanks to rwfranks@acm.org and GBECHIS@cpan.org
 
