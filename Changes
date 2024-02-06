@@ -1,5 +1,7 @@
 {{$NEXT}}
 
+  - Remove signature file from distribution
+
 3.20240205 2024-02-05 UTC
 
   - Fix pod in Mail::SPF::Util (RT#93241)
