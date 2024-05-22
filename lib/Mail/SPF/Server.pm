@@ -570,7 +570,10 @@ sub dns_lookup {
 
     $domain =~ s/^(.*?)\.?$/\L$1/;  # Normalize domain.
 
-    my $packet = $self->dns_resolver->send($domain, $rr_type);
+    my $packet = eval { $self->dns_resolver->send($domain, $rr_type); };
+    if($@) {
+      throw Mail::SPF::ENoAcceptableRecord($@);
+    }
 
     # Throw DNS exception unless an answer packet with RCODE 0 or 3 (NXDOMAIN)
     # was received (thereby treating NXDOMAIN as an acceptable but empty answer packet):
