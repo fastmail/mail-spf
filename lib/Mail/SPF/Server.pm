@@ -332,7 +332,11 @@ sub process {
         $result = $self->result_class('temperror')->new($self, $request, shift->text);
     }
     catch Mail::SPF::ENoAcceptableRecord with {
-        $result = $self->result_class('none'     )->new($self, $request, shift->text);
+	if((not defined $request->{record}->{terms}[0]->{domain_spec}->{text}) or ($request->{record}->{terms}[0]->{domain_spec}->{text} !~ /\.\./)) {
+          $result = $self->result_class('none'     )->new($self, $request, shift->text);
+        } else {
+          $result = $self->result_class('permerror')->new($self, $request, shift->text);
+        }
     }
     catch Mail::SPF::ERedundantAcceptableRecords with {
         $result = $self->result_class('permerror')->new($self, $request, shift->text);
