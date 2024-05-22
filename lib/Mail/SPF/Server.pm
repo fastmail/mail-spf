@@ -570,14 +570,16 @@ sub dns_lookup {
 
     $domain =~ s/^(.*?)\.?$/\L$1/;  # Normalize domain.
 
-    my $packet = eval { $self->dns_resolver->send($domain, $rr_type); };
-    if($@) {
-      throw Mail::SPF::ENoAcceptableRecord($@);
+    try {
+      $packet = $self->dns_resolver->send($domain, $rr_type);
     }
+    otherwise {
+       throw Mail::SPF::ENoAcceptableRecord($self->dns_resolver->errorstring);
+    };
 
     # Throw DNS exception unless an answer packet with RCODE 0 or 3 (NXDOMAIN)
     # was received (thereby treating NXDOMAIN as an acceptable but empty answer packet):
-    $self->dns_resolver->errorstring !~ /^(timeout|query timed out)$/
+    defined $self->dns_resolver->errorstring and $self->dns_resolver->errorstring !~ /^(timeout|query timed out)$/
         or throw Mail::SPF::EDNSTimeout(
             "Time-out on DNS '$rr_type' lookup of '$domain'");
     defined($packet)
