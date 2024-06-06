@@ -206,6 +206,8 @@ sub parse_version_tag {
 
 sub parse_term {
     my ($self) = @_;
+
+    require Mail::SPF::Mech;
     if (
         $self->{parse_text} =~ s/
             ^
