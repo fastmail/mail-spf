@@ -563,6 +563,8 @@ error (other than RCODE 3 AKA C<NXDOMAIN>) occurred.
 sub dns_lookup {
     my ($self, $domain, $rr_type) = @_;
 
+    my $packet;
+
     if (UNIVERSAL::isa($domain, 'Mail::SPF::MacroString')) {
         $domain = $domain->expand;
         # Truncate overlong labels at 63 bytes (RFC 4408, 8.1/27):
