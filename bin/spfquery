@@ -626,8 +626,10 @@ if (
     exit(255);
 }
 
-if (defined($identity) and $identity eq '') {
-    STDERR->print("Error: Empty identities are not supported. See spfquery(1).\n");
+if (defined($identity) and $identity eq '' and defined $helo_identity) {
+    $identity = 'postmaster@' . $helo_identity;
+} elsif (defined($identity) and $identity eq '') {
+    STDERR->print("Error: Empty identities are not supported without specifying HELO.\n");
     exit(255);
 }
 

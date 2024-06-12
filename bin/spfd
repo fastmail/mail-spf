@@ -261,9 +261,9 @@ and C<temperror>, respectively, in order to comply with RFC 4408 terminology.
 
 =item *
 
-SPF checks with an empty identity are no longer supported.  In the case of an
-empty C<MAIL FROM> SMTP transaction parameter, perform a check with the C<helo>
-scope directly.
+In the case of an empty C<MAIL FROM> SMTP transaction parameter (C<<
+MAIL FROM:<> >>), the identity checked will be postmaster@helo name as specified
+in RFC 7208.
 
 =back
 
