@@ -211,14 +211,11 @@ sub new {
     my ($self, %options) = @_;
     $self = $self->SUPER::new(%options);
 
+    # Do not cache a Mail::SPF::MacroString instance with
+    # context provided, this causes a circular reference that leaks
+    # both objects.
     $self->{default_authority_explanation} = $self->default_default_authority_explanation
         if not defined($self->{default_authority_explanation});
-    $self->{default_authority_explanation} = Mail::SPF::MacroString->new(
-        text            => $self->{default_authority_explanation},
-        server          => $self,
-        is_explanation  => TRUE
-    )
-        if not UNIVERSAL::isa($self->{default_authority_explanation}, 'Mail::SPF::MacroString');
 
     $self->{hostname} ||= Mail::SPF::Util->hostname;
 
@@ -661,6 +658,18 @@ Returns the default authority explanation as a I<MacroString> object.  See the
 description of the L</new> constructor's C<default_authority_explanation>
 option.
 
+=cut
+
+sub default_authority_explanation {
+    my ($self) = @_;
+
+    return Mail::SPF::MacroString->new(
+        text            => $self->{default_authority_explanation},
+        server          => $self,
+        is_explanation  => TRUE
+    );
+}
+
 =item B<hostname>: returns I<string>
 
 Returns the local system's host name.  See the description of the L</new>
@@ -695,7 +704,6 @@ L</new> constructor's corresponding options.
 # Make read-only accessors:
 __PACKAGE__->make_accessor($_, TRUE)
     foreach qw(
-        default_authority_explanation
         hostname
 
         dns_resolver
