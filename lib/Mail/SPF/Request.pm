@@ -152,7 +152,8 @@ The given identity is the C<MAIL FROM> parameter of an SMTP transaction (RFC
 the formal definition of the C<MAIL FROM> scope.
 
 I<Note>:  In the case of an empty C<MAIL FROM> SMTP transaction parameter (C<<
-MAIL FROM:<> >>), you should perform a check with the C<helo> scope instead.
+MAIL FROM:<> >>), the identity checked will be postmaster@helo name as specified
+in RFC 7208.
 
 =item B<'pra'>
 
@@ -175,9 +176,10 @@ I<Required>.  A string denoting the sender identity whose authorization should
 be checked.  This is a domain name for the C<helo> scope, and an e-mail address
 for the C<mfrom> and C<pra> scopes.
 
-I<Note>:  An empty identity must not be passed.  In the case of an empty C<MAIL
-FROM> SMTP transaction parameter, you should perform a check with the C<helo>
-scope instead.
+I<Note>:  An empty identity should not be passed, in the case of an empty
+C<MAIL FROM> SMTP transaction parameter (C<<MAIL FROM:<> >>),
+the identity checked will be postmaster@helo name as specified
+in RFC 7208.
 
 =item B<ip_address>
 
@@ -256,8 +258,12 @@ sub new {
     # Identity:
     defined($self->{identity})
         or throw Mail::SPF::EOptionRequired("Missing required 'identity' option");
-    length($self->{identity})
-        or throw Mail::SPF::EInvalidOptionValue("'identity' option must not be empty");
+    if(not length($self->{identity}) and (defined $self->{helo_identity})) {
+      # if identity is <>, try with postmaster@helo as specified in RFC 7208 section 2.4
+      $self->{identity} = 'postmaster@' . $self->{helo_identity};
+    } elsif(not length($self->{identity})) {
+      throw Mail::SPF::EInvalidOptionValue("'identity' option must not be empty without specifying HELO");
+    }
 
     # Extract domain and localpart from identity:
     if (
