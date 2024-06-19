@@ -145,7 +145,7 @@ Print out debug information.
 Several options that were supported by earlier versions of B<spfquery> are
 considered black magic (i.e. potentially dangerous for the innocent user) and
 are thus disabled by default.  If the L<B<Mail::SPF::BlackMagic>> Perl module
-is installed, they may be enabled by specifying B<--enable-black-magic>.
+is installed (module currently not available), they may be enabled by specifying B<--enable-black-magic>.
 
 =over
 
