@@ -140,6 +140,9 @@ request's IP address, or B<false> otherwise.  See RFC 4408, 5.6, for details.
 
 sub match {
     my ($self, $server, $request) = @_;
+    if($request->{ip_address}[0]->{isv6} eq 0) {
+      return FALSE;
+    }
     return $self->ip_network->contains($request->ip_address_v6);
 }
 
