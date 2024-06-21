@@ -552,6 +552,10 @@ sub authority_explanation {
         try {
             # ... then try to expand it:
             $authority_explanation = $authority_explanation_macrostring->expand;
+            # SPF explanation text is restricted to 7-bit ascii
+            if(defined $authority_explanation and utf8::is_utf8($authority_explanation)) {
+              $authority_explanation = $server->default_authority_explanation->new(request => $request)->expand;
+            }
         }
         catch Mail::SPF::EInvalidMacroString with {};
             # Ignore expansion errors and leave authority explanation undefined.
