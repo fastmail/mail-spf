@@ -1,4 +1,4 @@
-Mail::SPF 2.009 -- A Perl implementation of the Sender Policy Framework
+Mail::SPF 3.20240617 -- A Perl implementation of the Sender Policy Framework
 (C) 2005-2013 Julian Mehnle <julian@mehnle.net>
     2005      Shevek <cpan@anarres.org>
 <http://search.cpan.org/dist/Mail-SPF>
