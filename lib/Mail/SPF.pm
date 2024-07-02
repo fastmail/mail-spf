@@ -15,10 +15,6 @@ package Mail::SPF;
 
 Mail::SPF - An object-oriented implementation of Sender Policy Framework
 
-=head1 VERSION
-
-3.20240617
-
 =cut
 
 # VERSION

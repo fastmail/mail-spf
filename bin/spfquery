@@ -14,10 +14,6 @@
 spfquery - (Mail::SPF) - Checks if a given set of e-mail parameters matches a
 domain's SPF policy
 
-=head1 VERSION
-
-2.501
-
 =head1 SYNOPSIS
 
 =over
