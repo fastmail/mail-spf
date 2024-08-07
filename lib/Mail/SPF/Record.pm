@@ -382,10 +382,30 @@ sub eval {
         or throw Mail::SPF::EOptionRequired('Request object required for record evaluation');
 
     try {
+        my @include_domains;
+        my %inc_domain_cname;
         foreach my $term ($self->terms) {
             if ($term->isa('Mail::SPF::Mech')) {
                 # Term is a mechanism.
                 my $mech = $term;
+                if($term->name eq "include") {
+                  push(@include_domains, $term->{domain_spec}->{text});
+                  if(scalar @include_domains > 1) {
+                    foreach my $dom ( @include_domains ) {
+                      my $packet;
+                      if(not exists $inc_domain_cname{$dom}) {
+                        $packet = $server->dns_lookup($dom, 'CNAME');
+                        $inc_domain_cname{$dom} = $packet->{answer}[0]->{cname}->{name};
+                      }
+                      if(defined $inc_domain_cname{$dom}) {
+                        if(grep /^$inc_domain_cname{$dom}$/, @include_domains) {
+                          $server->throw_result('fail', $request,
+                                      'referencing the same TXT record through multiple CNAME aliases is not permitted');
+                        }
+                      }
+                    }
+                  }
+                }
                 if ($mech->match($server, $request)) {
                     my $result_name  = $self->results_by_qualifier->{$mech->qualifier};
                     my $result_class = $server->result_class($result_name);
@@ -408,6 +428,8 @@ sub eval {
                     "Unexpected term object '$term' encountered");
             }
         }
+        undef @include_domains;
+        undef %inc_domain_cname;
 
         # Default result when "falling off" the end of the record (RFC 4408, 4.7/1):
         $server->throw_result('neutral-by-default', $request,
