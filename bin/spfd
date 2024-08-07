@@ -13,10 +13,6 @@
 
 spfd - (Mail::SPF) - Simple forking daemon to provide SPF query services
 
-=head1 VERSION
-
-2.000
-
 =head1 SYNOPSIS
 
 B<spfd> B<--port>|B<-p> I<port> [B<--set-user>|B<-u> I<uid>|I<username>]
