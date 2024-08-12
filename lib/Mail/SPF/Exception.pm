@@ -9,6 +9,12 @@
 
 package Mail::SPF::Exception;
 
+=head1 NAME
+
+Mail::SPF::Exception - SPF exception class
+
+=cut
+
 use warnings;
 use strict;
 
