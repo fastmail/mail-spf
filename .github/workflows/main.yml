@@ -31,10 +31,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get -y install libmodule-build-perl libnet-dns-perl libnetaddr-ip-perl libnet-dns-resolver-programmable-perl libtest-pod-perl liburi-perl cpanminus libdist-zilla-perl
-          cpanm -n Mail::SPF::Test
-          dzil authordeps --missing | cpanm
+          sudo cpanm -n Mail::SPF::Test
+          dzil authordeps --missing | sudo cpanm
           hash -r
-          cpanm --installdeps --notest .  || echo "warn: errors installing required cpan modules have been ignored"
+          sudo cpanm --installdeps --notest .  || echo "warn: errors installing required cpan modules have been ignored"
       - name: build
         run: |
           dzil build
