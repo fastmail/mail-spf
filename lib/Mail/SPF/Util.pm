@@ -188,7 +188,9 @@ sub ip_address_reverse {
         or throw Mail::SPF::EInvalidOptionValue('NetAddr::IP IPv4 or IPv6 address expected');
     try {
         # Treat IPv4-mapped IPv6 addresses as IPv4 addresses:
-        $ip_address = $self->ipv6_address_to_ipv4($ip_address);
+        if($ip_address->version == 6) {
+	    $ip_address = $self->ipv6_address_to_ipv4($ip_address);
+        }
     }
     catch Mail::SPF::EInvalidOptionValue with {};
         # ...deliberately ignoring conversion errors.
