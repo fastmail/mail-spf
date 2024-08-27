@@ -1,5 +1,7 @@
 {{$NEXT}}
 
+3.20240827 2024-08-27 Australia/Melbourne
+
   ** Thanks to Giovanni <g.bechis@snb.it> for the changes in this release.
 
   - Do not try to parse an IPv4 address unnecessarily
