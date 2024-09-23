@@ -582,15 +582,12 @@ sub dns_lookup {
 
     # Throw DNS exception unless an answer packet with RCODE 0 or 3 (NXDOMAIN)
     # was received (thereby treating NXDOMAIN as an acceptable but empty answer packet):
-    defined $self->dns_resolver->errorstring and $self->dns_resolver->errorstring !~ /^(timeout|query timed out)$/
-        or throw Mail::SPF::EDNSTimeout(
-            "Time-out on DNS '$rr_type' lookup of '$domain'");
-    defined($packet)
-        or throw Mail::SPF::EDNSError(
-            "Unknown error on DNS '$rr_type' lookup of '$domain'");
-    $packet->header->rcode =~ /^(NOERROR|NXDOMAIN)$/
-        or throw Mail::SPF::EDNSError(
-            "'" . $packet->header->rcode . "' error on DNS '$rr_type' lookup of '$domain'");
+    throw Mail::SPF::EDNSTimeout("Time-out on DNS '$rr_type' lookup of '$domain'")
+      if defined $self->dns_resolver->errorstring && $self->dns_resolver->errorstring =~ /^(timeout|query timed out)$/;
+    throw Mail::SPF::EDNSError("Unknown error on DNS '$rr_type' lookup of '$domain'")
+      unless defined $packet;
+    throw Mail::SPF::EDNSError("'" . $packet->header->rcode . "' error on DNS '$rr_type' lookup of '$domain'")
+      unless $packet->header->rcode =~ /^(NOERROR|NXDOMAIN)$/;
 
     return $packet;
 }
