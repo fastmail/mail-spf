@@ -330,6 +330,8 @@ sub process {
     }
     catch Mail::SPF::ENoAcceptableRecord with {
 	if((not defined $request->{record}->{terms}[0]->{domain_spec}->{text}) or ($request->{record}->{terms}[0]->{domain_spec}->{text} !~ /\.\./)) {
+          # remove empty record structure in order to stringify it correctly
+          undef $request->{record};
           $result = $self->result_class('none'     )->new($self, $request, shift->text);
         } else {
           $result = $self->result_class('permerror')->new($self, $request, shift->text);
