@@ -207,7 +207,12 @@ sub parse_version_tag {
 sub parse_term {
     my ($self) = @_;
 
-    require Mail::SPF::Mech;
+    eval {
+      require Mail::SPF::Mech;
+    };
+    if($@) {
+      throw Mail::SPF::ENothingToParse('Cannot load Mail::SPF::Mech class');
+    }
     if (
         $self->{parse_text} =~ s/
             ^
