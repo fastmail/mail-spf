@@ -1,5 +1,5 @@
-# This is the openspf.org test suite (release 2014.04) based on RFC 7208.
-# http://www.openspf.org/Test_Suite
+# This is the open-spf.org test suite (release 2014.04) based on RFC 7208.
+# http://www.open-spf.org/Test_Suite
 #
 # $Id$
 # vim:sw=2 sts=2 et
@@ -2642,7 +2642,7 @@ zonedata:
   _spf.example.com:
     - SPF: "v=spf1 ptr:fe.example.org ptr:sgp.example.com exp=_expspf.example.org -all"
   _expspf.example.org:
-    - TXT: "Sender domain not allowed from this host. Please see http://www.openspf.org/Why?s=mfrom&id=%{S}&ip=%{C}&r=%{R}"
+    - TXT: "Sender domain not allowed from this host. Please see http://www.open-spf.org/Why?s=mfrom&id=%{S}&ip=%{C}&r=%{R}"
   a.example.org:
     - TXT: "Another TXT record."
     - TXT: "v=spf1 ip4:192.0.2.225 ?include:webmail.pair.com ?include:relay.pair.com -all"

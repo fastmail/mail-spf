@@ -46,9 +46,10 @@ B<spfquery> B<--help>
 
 =head1 DESCRIPTION
 
-B<spfquery> checks if a given set of e-mail parameters (e.g., the SMTP sender's
+B<spfquery> checks if a given set of e-mail parameters (e.g. the SMTP sender's
 IP address) matches the responsible domain's Sender Policy Framework (SPF)
-policy.  For more information on SPF see L<http://www.openspf.org>.
+policy.  
+For more information on SPF see L<https://tools.ietf.org/html/rfc7208>.
 
 =head2 Preferred Usage
 

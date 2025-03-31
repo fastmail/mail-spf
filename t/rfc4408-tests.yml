@@ -1,5 +1,5 @@
-# This is the openspf.org test suite (release 2009.10) based on RFC 4408.
-# http://www.openspf.org/Test_Suite
+# This is the open-spf.org test suite (release 2009.10) based on RFC 4408.
+# http://www.open-spf.org/Test_Suite
 #
 # $Id: rfc4408-tests.yml 108 2009-10-31 19:51:18Z Julian Mehnle $
 # vim:sw=2 sts=2 et

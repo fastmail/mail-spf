@@ -55,7 +55,8 @@ use constant FALSE  => not TRUE;
 =head1 DESCRIPTION
 
 B<Mail::SPF> is an object-oriented implementation of Sender Policy Framework
-(SPF).  See L<http://www.openspf.org> for more information about SPF.
+(SPF).  See L<https://tools.ietf.org/html/rfc7208> for more information about
+SPF.
 
 This class collection aims to fully conform to the SPF specification (RFC
 4408) so as to serve both as a production quality SPF implementation and as a
@@ -74,11 +75,11 @@ included with Mail::SPF.
 
 =item The SPF project
 
-L<http://www.openspf.org>
+L<http://www.open-spf.org/>
 
-=item The SPFv1 specification (RFC 4408)
+=item The SPFv1 specification (RFC 7208)
 
-L<http://www.openspf.org/Specifications>, L<http://tools.ietf.org/html/rfc4408>
+L<http://www.open-spf.org/Specifications>, L<https://tools.ietf.org/html/rfc7208>
 
 =back
 
