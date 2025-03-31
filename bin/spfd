@@ -31,7 +31,7 @@ B<spfd> B<--help>
 
 B<spfd> is a simple forking Sender Policy Framework (SPF) query server.  spfd
 receives and answers SPF requests on a TCP/IP or UNIX domain socket.  For more
-information on SPF see L<http://www.openspf.org>.
+information on SPF see L<https://tools.ietf.org/html/rfc7208>.
 
 The B<--port> form listens on a TCP/IP socket on the specified I<port>.  The
 default port is B<5970>.
@@ -196,8 +196,7 @@ breaks added for clarity):
     result=fail
     local_explanation=example.com: Sender is not authorized by default to use
         'user@example.com' in 'mfrom' identity (mechanism '-all' matched)
-    authority_explanation=Please see http://www.openspf.org/why.html?
-        sender=user%40example.com&ip=1.2.3.4&receiver=localhost
+    authority_explanation=Rejected by SPF record.
     received_spf_header=Received-SPF: fail (example.com: Sender is not
         authorized by default to use 'user@example.com' in 'mfrom' identity
         (mechanism '-all' matched)) receiver=localhost; identity=mfrom;

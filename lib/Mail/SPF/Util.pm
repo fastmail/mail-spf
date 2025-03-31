@@ -156,8 +156,8 @@ throws I<Mail::SPF::EInvalidOptionValue>
 
 Returns the given I<NetAddr::IP> IPv4 or IPv6 address compactly formatted as a
 I<string>.  For IPv4 addresses, this is equivalent to calling L<NetAddr::IP's
-C<addr> |NetAddr::IP/addr> method.  For IPv6 addresses, this is equivalent to
-calling L<NetAddr::IP's C<short> |NedAddr::IP/short> method.  Throws a
+C<addr>|NetAddr::IP/addr> method.  For IPv6 addresses, this is equivalent to
+calling L<NetAddr::IP's C<short>|NedAddr::IP/short> method.  Throws a
 I<Mail::SPF::EInvalidOptionValue> exception if the specified object is not a
 I<NetAddr::IP> IPv4 or IPv6 address object.
 
