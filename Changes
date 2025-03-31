@@ -1,6 +1,5 @@
 {{$NEXT}}
 
-3.20250331 2025-03-31 Australia/Melbourne
   Mail::SPF:
   - Redirecting all references to openspf.org to open-spf.org
 
