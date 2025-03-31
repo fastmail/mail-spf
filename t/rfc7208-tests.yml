@@ -2642,7 +2642,7 @@ zonedata:
   _spf.example.com:
     - SPF: "v=spf1 ptr:fe.example.org ptr:sgp.example.com exp=_expspf.example.org -all"
   _expspf.example.org:
-    - TXT: "Sender domain not allowed from this host. Please see http://www.open-spf.org/Why?s=mfrom&id=%{S}&ip=%{C}&r=%{R}"
+    - TXT: "Sender domain not allowed from this host."
   a.example.org:
     - TXT: "Another TXT record."
     - TXT: "v=spf1 ip4:192.0.2.225 ?include:webmail.pair.com ?include:relay.pair.com -all"

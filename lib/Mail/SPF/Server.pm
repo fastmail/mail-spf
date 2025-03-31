@@ -43,7 +43,7 @@ use constant query_rr_type_txt                      => 1;
 use constant query_rr_type_spf                      => 2;
 
 use constant default_default_authority_explanation  =>
-    'Rejected by SPF record.  Please see http://www.open-spf.org/Why?s=%{_scope};id=%{S};ip=%{C};r=%{R}';
+    'Rejected by SPF record.';
 
 sub default_query_rr_types { shift->query_rr_type_txt };
 
@@ -102,7 +102,7 @@ A I<string> denoting the default (not macro-expanded) authority explanation
 string to use if the authority domain does not specify an explanation string of
 its own.  Defaults to:
 
-    'Rejected by SPF record. Please see http://www.open-spf.org/Why?s=%{_scope};id=%{S};ip=%{C};r=%{R}'
+    'Rejected by SPF record.'
 
 As can be seen from the default, a non-standard C<_scope> pseudo macro is
 supported that expands to the name of the identity's scope.  (Note: Do I<not>
