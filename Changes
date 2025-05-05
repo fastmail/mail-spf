@@ -1,5 +1,7 @@
 {{$NEXT}}
 
+3.20250505 2025-05-05 Australia/Sydney
+
   ** Thanks to Giovanni <g.bechis@snb.it> for these changes: 
   - avoid a 'Attempt to reload Mail/SPF/Mech.pm aborted.' error
   - remove empty record structure in order to stringify it correctly
