@@ -1,7 +1,12 @@
 {{$NEXT}}
 
-  Mail::SPF:
+  ** Thanks to Giovanni <g.bechis@snb.it> for these changes: 
+  - avoid a 'Attempt to reload Mail/SPF/Mech.pm aborted.' error
+  - remove empty record structure in order to stringify it correctly
+  
+  ** Thanks to Keith <kealanta@fastmailteam.com> for these changes, based on Debian patches: 
   - Redirecting all references to openspf.org to open-spf.org
+  - fix pod test errors
 
 3.20240923 2024-09-23 Australia/Melbourne
   - Fix issue where certain DNS results would cause an exception to be thrown
