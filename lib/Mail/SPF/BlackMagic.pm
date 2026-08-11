@@ -59,8 +59,8 @@ is specified.  See the C<spfquery(1)> man-page for a description of these
 options from the command-line tool's perspective.
 
 This module follows the extension recipe described in the top-level C<README>
-file: it sub-classes I<Mail::SPF::Server> and overrides L</select_record> and
-L</process> to implement its additional behavior.
+file: it sub-classes I<Mail::SPF::Server> and overrides C<select_record> and
+C<process> to implement its additional behavior.
 
 =head2 Constructor
 
@@ -132,6 +132,8 @@ sub new {
 
 In addition to all instance methods provided by I<Mail::SPF::Server>, the
 following instance methods are overridden:
+
+=over 4
 
 =item B<select_record($request)>: returns I<Mail::SPF::Record>;
 throws I<Mail::SPF::EDNSError>, I<Mail::SPF::ENoAcceptableRecord>,
