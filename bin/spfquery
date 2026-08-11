@@ -558,8 +558,8 @@ if ($options->{'enable-black-magic'}) {
 elsif (
     black_magic_option('max-dns-interactive-terms', $options) or
     black_magic_option('max-name-lookups-per-term', $options) or
-    black_magic_option('rcpt-to',                   $options) or
-    black_magic_option('trusted',                   $options) or
+    black_magic_option('authorize-mxes-for',        $options) or
+    black_magic_option('tfwl',                      $options) or
     black_magic_option('guess',                     $options) or
     black_magic_option('local',                     $options) or
     black_magic_option('override',                  $options) or
@@ -634,7 +634,10 @@ if (defined($identity) and $identity eq '' and defined $helo_identity) {
 ##############################################################################
 
 try {
-    my $spf_server = Mail::SPF::Server->new(
+    my $server_class = $options->{'enable-black-magic'} ?
+        'Mail::SPF::BlackMagic' : 'Mail::SPF::Server';
+
+    my $spf_server = $server_class->new(
         default_authority_explanation
                         => $default_explanation,
         hostname        => $hostname,
@@ -651,13 +654,23 @@ try {
             exists($options->{'max-name-lookups-per-term'}) ?
                 (max_name_lookups_per_term  => $options->{'max-name-lookups-per-term'} || undef)
             :   ()
+        ),
+        (
+            $options->{'enable-black-magic'} ?
+                (
+                    (
+                        exists($options->{'authorize-mxes-for'}) ?
+                            (authorize_mxes_for => [split(/,/, $options->{'authorize-mxes-for'})])
+                        :   ()
+                    ),
+                    (exists($options->{tfwl})     ? (tfwl     => $options->{tfwl})     : ()),
+                    (exists($options->{guess})    ? (guess    => $options->{guess})    : ()),
+                    (exists($options->{local})    ? (local    => $options->{local})    : ()),
+                    (exists($options->{override}) ? (override => $options->{override}) : ()),
+                    (exists($options->{fallback}) ? (fallback => $options->{fallback}) : ()),
+                )
+            :   ()
         )
-    #    rcpt_to         => $options->{'rcpt-to'},
-    #    trusted         => $options->{trusted},
-    #    guess           => $options->{guess},
-    #    local           => $options->{local},
-    #    override        => $options->{override},
-    #    fallback        => $options->{fallback},
     );
 
     my $exit_code;
