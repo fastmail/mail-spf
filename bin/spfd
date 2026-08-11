@@ -474,16 +474,12 @@ if (defined($set_user)) {
         or die("Unable to setuid($set_user): $!");
 }
 
-my $spf_server = Mail::SPF::Server->new(
+my $server_class = $enable_black_magic ? 'Mail::SPF::BlackMagic' : 'Mail::SPF::Server';
+
+my $spf_server = $server_class->new(
     default_authority_explanation
                     => $default_explanation,
     hostname        => $hostname,
-
-    # Black Magic:
-    # TODO
-    # max-dns-interactive-terms
-    # max-name-lookups-per-term
-    # more?
 );
 
 # Handle Client Connections

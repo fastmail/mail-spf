@@ -1,6 +1,7 @@
 Mail::SPF { $dist->version } -- A Perl implementation of the Sender Policy Framework
 (C) 2005-2013 Julian Mehnle <julian@mehnle.net>
     2005      Shevek <cpan@anarres.org>
+    2026      Giovanni Bechis <giovanni@paclan.it>
 <http://search.cpan.org/dist/Mail-SPF>
 ==============================================================================
 
