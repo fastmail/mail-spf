@@ -486,7 +486,14 @@ sub select_record {
             "No applicable sender policy available");  # RFC 4408, 4.5/7
 
     # Discard all records but the highest acceptable version:
-    my $preferred_record_class = $records[0]->class;
+    my $preferred_record_class;
+    foreach my $version (sort { $b <=> $a } @versions) {
+        my $record_class = $self->record_classes_by_version->{$version};
+        if (grep($_->isa($record_class), @records)) {
+            $preferred_record_class = $record_class;
+            last;
+        }
+    }
     @records = grep($_->isa($preferred_record_class), @records);
 
     @records == 1
