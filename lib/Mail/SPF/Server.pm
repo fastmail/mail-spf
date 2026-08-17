@@ -301,7 +301,7 @@ The following instance methods are provided:
 
 =over
 
-=item B<process($request)>: returns I<Mail::SPF::Result>
+=item B<process($request, $options)>: returns I<Mail::SPF::Result>
 
 Processes the given I<Mail::SPF::Request> object, queries the authoritative
 domain for an SPF sender policy (see the description of the L</select_record>
@@ -310,10 +310,27 @@ request parameters, and returns a I<Mail::SPF::Result> object denoting the
 result of the policy evaluation.  See RFC 4408, 4, and RFC 4406, 4, for
 details.
 
+An optional I<hash> reference of options may be given as the second argument.
+Currently the only supported option is:
+
+=over
+
+=item B<record>
+
+A I<string> denoting a proposed SPF record to evaluate I<instead of> querying
+DNS for the authority domain's record.  This allows testing a not-yet-
+published record against the real DNS state of any domains it references
+(e.g. via C<include> or C<a>/C<mx>), without first having to publish it.  See
+the description of the L</record_from_string> method for details of how the
+record is parsed and validated.
+
+=back
+
 =cut
 
 sub process {
-    my ($self, $request) = @_;
+    my ($self, $request, $options) = @_;
+    $options ||= {};
 
     $request->state('authority_explanation', undef);
     $request->state('dns_interactive_terms_count', 0);
@@ -321,7 +338,9 @@ sub process {
 
     my $result;
     try {
-        my $record = $self->select_record($request);
+        my $record = defined($options->{record})
+            ? $self->record_from_string($options->{record}, $request)
+            : $self->select_record($request);
         $request->record($record);
         $record->eval($self, $request);
     }
@@ -505,10 +524,6 @@ do not cover the given scope.  Returns a list of acceptable records.
 sub get_acceptable_records_from_packet {
     my ($self, $packet, $rr_type, $versions, $scope, $domain) = @_;
 
-    my @versions = sort { $b <=> $a } @$versions;
-        # Try higher record versions first.
-        # (This may be too simplistic for future revisions of SPF.)
-
     my @records;
 
     foreach my $rr ($packet->answer) {
@@ -521,28 +536,76 @@ sub get_acceptable_records_from_packet {
         my $text = $rr->can('txtdata')
                  ? join('', $rr->txtdata)
                  : join('', $rr->char_str_list);
-        my $record;
 
-        # Try to parse RR as each of the requested record versions,
-        # starting from the highest version:
-        VERSION:
-        foreach my $version (@versions) {
-            my $class = $self->record_classes_by_version->{$version};
-            eval("require $class");
-            try {
-                $record = $class->new_from_string($text);
-            }
-            catch Mail::SPF::EInvalidRecordVersion with {};
-                # Ignore non-SPF and unknown-version records.
-                # Propagate other errors (including syntax errors), though.
-            last VERSION if defined($record);
-        }
+        my $record = $self->parse_record_for_versions($text, $versions);
 
         push(@records, $record)
             if  defined($record)
             and grep($scope eq $_, $record->scopes);  # record covers requested scope?
     }
     return @records;
+}
+
+=item B<parse_record_for_versions($text, \@versions)>: returns I<Mail::SPF::Record> or B<undef>;
+throws I<Mail::SPF::ESyntaxError>
+
+Tries to parse the given string as an SPF record of each of the given
+versions, preferring version 1 (C<v=spf1>) over version 2 (C<spf2.0>, i.e.
+Sender ID, which is deprecated), and returns the first successfully parsed
+record.  Records that are not SPF records at all, or that are of an
+unrequested version, are ignored, in which case B<undef> is returned.  Other
+parse errors, e.g. I<Mail::SPF::ESyntaxError>, are propagated.
+
+=cut
+
+sub parse_record_for_versions {
+    my ($self, $text, $versions) = @_;
+
+    my @versions = sort { $a <=> $b } @$versions;
+        # Prefer SPF1 records; spf2.0 (Sender ID) is deprecated.
+
+    my $record;
+    VERSION:
+    foreach my $version (@versions) {
+        my $class = $self->record_classes_by_version->{$version};
+        eval("require $class");
+        try {
+            $record = $class->new_from_string($text);
+        }
+        catch Mail::SPF::EInvalidRecordVersion with {};
+            # Ignore non-SPF and unknown-version records.
+            # Propagate other errors (including syntax errors), though.
+        last VERSION if defined($record);
+    }
+    return $record;
+}
+
+=item B<record_from_string($text, $request)>: returns I<Mail::SPF::Record>;
+throws I<Mail::SPF::ENoAcceptableRecord>, I<Mail::SPF::ESyntaxError>
+
+Parses the given string as an SPF record of one of the acceptable versions
+for the given I<Mail::SPF::Request> object, preferring version 1 over version 2
+(see L</parse_record_for_versions>), without performing any DNS look-up.
+Throws a I<Mail::SPF::ENoAcceptableRecord> exception if the text does not
+parse as an acceptable record version, or if the resulting record does not
+cover the request's scope.  Used by L</process> to evaluate a proposed record
+supplied via its C<record> option.
+
+=cut
+
+sub record_from_string {
+    my ($self, $text, $request) = @_;
+
+    my @versions = $request->versions;
+    my $scope    = $request->scope;
+
+    my $record = $self->parse_record_for_versions($text, \@versions);
+
+    defined($record) && grep($scope eq $_, $record->scopes)
+        or throw Mail::SPF::ENoAcceptableRecord(
+            "Proposed record is not an acceptable sender policy for the '$scope' scope");
+
+    return $record;
 }
 
 =item B<dns_lookup($domain, $rr_type)>: returns I<Net::DNS::Packet>;

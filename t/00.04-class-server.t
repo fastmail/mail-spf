@@ -5,10 +5,9 @@ use blib;
 use Error ':try';
 use Net::DNS::Resolver::Programmable;
 use Net::DNS::RR;
-
 use Mail::SPF::Request;
 
-use Test::More tests => 27;
+use Test::More tests => 33;
 
 my $test_resolver_empty = Net::DNS::Resolver::Programmable->new(
     records         => {}
@@ -187,4 +186,85 @@ BEGIN { use_ok('Mail::SPF::Server') }
 
     $result = $process->('dot.example.com');
     isa_ok($result, 'Mail::SPF::Result::Pass',          'Server process() include of CNAME is not matched as a regex');
+}
+
+
+#### process() with a proposed record (record_from_string()) ####
+
+# Without a proposed record, an empty DNS zone yields "none":
+
+{
+    my $server  = Mail::SPF::Server->new(dns_resolver => $test_resolver_empty);
+    my $request = Mail::SPF::Request->new(
+        scope       => 'mfrom',
+        identity    => 'foo@example.com',
+        ip_address  => '192.168.0.2'
+    );
+
+    my $result = $server->process($request);
+    is($result->code, 'none', 'Server process() without record option queries DNS as usual');
+}
+
+# A proposed record is evaluated instead of the (non-existent) DNS record:
+
+{
+    my $server  = Mail::SPF::Server->new(dns_resolver => $test_resolver_empty);
+    my $request = Mail::SPF::Request->new(
+        scope       => 'mfrom',
+        identity    => 'foo@example.com',
+        ip_address  => '192.168.0.2'
+    );
+
+    my $result = $server->process($request, { record => 'v=spf1 -all' });
+    is($result->code, 'fail', 'Server process() record option bypasses DNS record selection');
+}
+
+# Mechanisms within a proposed record still perform real DNS look-ups:
+
+{
+    my $server = Mail::SPF::Server->new(dns_resolver => $test_resolver_1);
+
+    my $request_match = Mail::SPF::Request->new(
+        scope       => 'mfrom',
+        identity    => 'foo@example.com',
+        ip_address  => '192.168.0.1'
+    );
+    my $result_match = $server->process($request_match, { record => 'v=spf1 a -all' });
+    is($result_match->code, 'pass', 'Server process() record option mechanisms perform real DNS look-ups (match)');
+
+    my $request_nomatch = Mail::SPF::Request->new(
+        scope       => 'mfrom',
+        identity    => 'foo@example.com',
+        ip_address  => '192.168.0.9'
+    );
+    my $result_nomatch = $server->process($request_nomatch, { record => 'v=spf1 a -all' });
+    is($result_nomatch->code, 'fail', 'Server process() record option mechanisms perform real DNS look-ups (no match)');
+}
+
+# A proposed record of a version unacceptable for the request's scope yields "none":
+
+{
+    my $server  = Mail::SPF::Server->new(dns_resolver => $test_resolver_empty);
+    my $request = Mail::SPF::Request->new(
+        scope       => 'helo',
+        identity    => 'mta.example.com',
+        ip_address  => '192.168.0.2'
+    );
+
+    my $result = $server->process($request, { record => 'spf2.0/mfrom -all' });
+    is($result->code, 'none', 'Server process() record option for an unacceptable record version');
+}
+
+# A syntactically invalid proposed record yields "permerror":
+
+{
+    my $server  = Mail::SPF::Server->new(dns_resolver => $test_resolver_empty);
+    my $request = Mail::SPF::Request->new(
+        scope       => 'mfrom',
+        identity    => 'foo@example.com',
+        ip_address  => '192.168.0.2'
+    );
+
+    my $result = $server->process($request, { record => 'v=spf1 bogus-mechanism -all' });
+    is($result->code, 'permerror', 'Server process() record option with invalid syntax');
 }
