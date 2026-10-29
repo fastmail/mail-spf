@@ -35,6 +35,15 @@
     counted towards the RFC 7208 DNS lookup and void lookup limits.
     The test suite's resolver now follows CNAMEs, which is what the
     RFC 7208 cname-aliasing test case needed
+  - Security: an exception thrown by the DNS resolver, including
+    Net::DNS refusing to compose a query for an invalid domain name,
+    made the SPF result none, i.e. no policy, rather than temperror.
+    As invalid names can come from macros expanded with the sender's
+    local part or HELO name, a sender could turn a domain's -all
+    policy into none. Invalid domain names (empty label, label longer
+    than 63 bytes, or name longer than 253 bytes) are now treated as
+    non-existent without querying the resolver, per RFC 7208, and
+    other resolver exceptions result in temperror
 
 3.20260331 2026-04-01 Australia/Melbourne
   ** Thanks to Giovanni <g.bechis@snb.it> for this change: 

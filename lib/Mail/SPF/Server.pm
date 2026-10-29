@@ -24,6 +24,7 @@ use strict;
 use base 'Mail::SPF::Base';
 
 use Error ':try';
+use Net::DNS::Packet;
 use Net::DNS::Resolver;
 
 use Mail::SPF::MacroString;
@@ -331,13 +332,7 @@ sub process {
         $result = $self->result_class('temperror')->new($self, $request, shift->text);
     }
     catch Mail::SPF::ENoAcceptableRecord with {
-	if((not defined $request->{record}->{terms}[0]->{domain_spec}->{text}) or ($request->{record}->{terms}[0]->{domain_spec}->{text} !~ /\.\./)) {
-          # remove empty record structure in order to stringify it correctly
-          undef $request->{record};
-          $result = $self->result_class('none'     )->new($self, $request, shift->text);
-        } else {
-          $result = $self->result_class('permerror')->new($self, $request, shift->text);
-        }
+        $result = $self->result_class('none'     )->new($self, $request, shift->text);
     }
     catch Mail::SPF::ERedundantAcceptableRecords with {
         $result = $self->result_class('permerror')->new($self, $request, shift->text);
@@ -557,7 +552,13 @@ Queries the DNS using the configured resolver for resource records of the
 desired type at the specified domain and returns a I<Net::DNS::Packet> object
 if an answer packet was received.  Throws a I<Mail::SPF::EDNSTimeout> exception
 if a DNS time-out occurred.  Throws a I<Mail::SPF::EDNSError> exception if an
-error (other than RCODE 3 AKA C<NXDOMAIN>) occurred.
+error (other than RCODE 3 AKA C<NXDOMAIN>) occurred, including if the resolver
+throws an exception.
+
+A domain that is not a valid DNS name (i.e. has an empty label, a label longer
+than 63 bytes, or is longer than 253 bytes) is treated as non-existent without
+querying the resolver, and an empty C<NXDOMAIN> answer packet is returned
+(RFC 7208, 4.3/1, 4.8/5).
 
 =cut
 
@@ -577,11 +578,25 @@ sub dns_lookup {
 
     $domain =~ s/^(.*?)\.?$/\L$1/;  # Normalize domain.
 
+    # Treat invalid domain names as non-existent (RFC 7208, 4.3/1, 4.8/5),
+    # as no DNS query can be composed from them:
+    if (
+        $domain =~ /^\.|\.\./ or
+        $domain =~ /[^.]{64}/ or
+        length($domain) > 253
+    ) {
+        $packet = Net::DNS::Packet->new();
+        $packet->header->rcode('NXDOMAIN');
+        return $packet;
+    }
+
     try {
       $packet = $self->dns_resolver->send($domain, $rr_type);
     }
     otherwise {
-       throw Mail::SPF::ENoAcceptableRecord($self->dns_resolver->errorstring);
+       # Don't include the resolver's exception text, which may reveal
+       # internal details, as this may end up in a Received-SPF header:
+       throw Mail::SPF::EDNSError("Unknown error on DNS '$rr_type' lookup of '$domain'");
     };
 
     # Throw DNS exception unless an answer packet with RCODE 0 or 3 (NXDOMAIN)
