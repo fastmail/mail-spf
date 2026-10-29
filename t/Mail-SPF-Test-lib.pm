@@ -36,8 +36,13 @@ sub run_spf_test_suite_file {
                     my $rcode = 'NOERROR';
                     my @rrs;
                     push(@rrs, $scenario->records_for_domain($domain, $rr_type));
-                    push(@rrs, $scenario->records_for_domain($domain, 'CNAME'))
-                        if not @rrs and $rr_type ne 'CNAME';
+                    if (not @rrs and $rr_type ne 'CNAME') {
+                        # Chase a CNAME like a recursive resolver would:
+                        my @cname_rrs = $scenario->records_for_domain($domain, 'CNAME');
+                        push(@rrs, @cname_rrs);
+                        push(@rrs, $scenario->records_for_domain($cname_rrs[0]->cname, $rr_type))
+                            if @cname_rrs and ref($cname_rrs[0]);  # Skip 'TIMEOUT' placeholders.
+                    }
                     if (@rrs == 0) {
                         $rcode = 'NXDOMAIN';
                     }
