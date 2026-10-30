@@ -375,8 +375,12 @@ I<Mail::SPF::ESyntaxError>
 
 Queries the authority domain of the given I<Mail::SPF::Request> object for SPF
 sender policy records and, if multiple records are available, selects the
-record of the highest acceptable record version that covers the requested
-scope.
+record of the lowest acceptable record version that covers the requested
+scope, i.e. a C<v=spf1> record is preferred over an C<spf2.0> record.
+
+Note that this deliberately deviates from RFC 4406 (Sender ID), 4.4/6, which
+prefers C<spf2.0> records.  Sender ID is historic (RFC 6686), so C<v=spf1>
+records are the ones that are maintained, and are used whenever available.
 
 More precisely, the following algorithm is performed (assuming that both C<TXT>
 and C<SPF> RR types are being queried):
@@ -403,7 +407,7 @@ I<Mail::SPF::ENoAcceptableRecord> exception.
 
 =item 3.
 
-Discard all records but those of the highest acceptable version found.
+Discard all records but those of the lowest acceptable version found.
 
 If exactly one record remains, return it.  Otherwise, throw a
 I<Mail::SPF::ERedundantAcceptableRecords> exception.
@@ -499,8 +503,13 @@ sub select_record {
         or throw Mail::SPF::ENoAcceptableRecord(
             "No applicable sender policy available");  # RFC 4408, 4.5/7
 
-    # Discard all records but the highest acceptable version:
-    my $preferred_record_class = $records[0]->class;
+    # Discard all records but those of the lowest acceptable version, i.e.
+    # prefer 'v=spf1' over 'spf2.0' (Sender ID, which is historic, see RFC 6686),
+    # regardless of the order of the RRs in the DNS answer:
+    my ($preferred_record_class) = grep {
+        my $class = $_;
+        grep($_->isa($class), @records);
+    } map($self->record_classes_by_version->{$_}, sort { $a <=> $b } @versions);
     @records = grep($_->isa($preferred_record_class), @records);
 
     @records == 1

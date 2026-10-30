@@ -7,7 +7,7 @@ use Net::DNS::Resolver::Programmable;
 use Net::DNS::RR;
 use Mail::SPF::Request;
 
-use Test::More tests => 33;
+use Test::More tests => 36;
 
 my $test_resolver_empty = Net::DNS::Resolver::Programmable->new(
     records         => {}
@@ -267,4 +267,38 @@ BEGIN { use_ok('Mail::SPF::Server') }
 
     my $result = $server->process($request, { record => 'v=spf1 bogus-mechanism -all' });
     is($result->code, 'permerror', 'Server process() record option with invalid syntax');
+}
+
+
+#### select_record() with both 'v=spf1' and 'spf2.0' records ####
+
+{
+    my %zone = (
+        'v2-v1.example.com'     => [ 'spf2.0/mfrom -all', 'v=spf1 +all' ],
+        'v1-v2.example.com'     => [ 'v=spf1 +all', 'spf2.0/mfrom -all' ]
+    );
+
+    my $server = Mail::SPF::Server->new(
+        dns_resolver => Net::DNS::Resolver::Programmable->new(
+            resolver_code   => sub {
+                my ($domain, $rr_type) = @_;
+                return ('NXDOMAIN', undef) if not $zone{$domain};
+                return ('NOERROR', undef) if $rr_type ne 'TXT';
+                return ('NOERROR', undef, map(Net::DNS::RR->new("$domain 60 IN TXT \"$_\""), @{$zone{$domain}}));
+            }
+        )
+    );
+
+    my $select = sub {
+        my ($domain, @versions) = @_;
+        return $server->select_record(Mail::SPF::Request->new(
+            identity    => "foo\@$domain",
+            ip_address  => '192.168.0.1',
+            @versions ? (versions => \@versions) : ()
+        ));
+    };
+
+    isa_ok($select->('v2-v1.example.com'),      'Mail::SPF::v1::Record', 'Server select_record() prefers v=spf1 over spf2.0 listed first');
+    isa_ok($select->('v1-v2.example.com'),      'Mail::SPF::v1::Record', 'Server select_record() prefers v=spf1 over spf2.0 listed last');
+    isa_ok($select->('v2-v1.example.com', 2),   'Mail::SPF::v2::Record', 'Server select_record() uses spf2.0 if only version 2 is acceptable');
 }

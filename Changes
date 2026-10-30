@@ -56,6 +56,13 @@
   - Prefer SPF1 over SPF2 (Sender ID, which is deprecated) when a record
     could be parsed as either
 
+  - When a domain publishes both "v=spf1" and "spf2.0" records, always
+    select the "v=spf1" record. Previously the record was chosen by the
+    order of the records in the DNS answer, so the result could vary
+    between queries, although the documentation and RFC 4406 said
+    "spf2.0" records were preferred. Sender ID is historic (RFC 6686),
+    so "v=spf1" is now deliberately preferred
+
 3.20260331 2026-04-01 Australia/Melbourne
   ** Thanks to Giovanni <g.bechis@snb.it> for this change: 
   - Do not check for multiple CNAMEs if the included domain is a macro

@@ -4,30 +4,46 @@
 # $Id: rfc4406-tests.yml 30 2006-11-27 19:55:10Z Julian Mehnle $
 #
 # vim:sw=2 sts=2
+#
+# Modified for Mail::SPF, which deliberately prefers "v=spf1" records over
+# "spf2.0" records, unlike RFC 4406, 4.4/6, as Sender ID is historic (RFC 6686).
 ---
 description: Selecting records
 tests:
-  v2-preferred-over-v1:
+  v1-preferred-over-v2:
     description: >-
-      "spf2.0" records ought to be preferred over "v=spf1" records.
+      "v=spf1" records are preferred over "spf2.0" records.
+    comment: >-
+      Deliberately deviates from RFC 4406, 4.4/6, which prefers "spf2.0".
     spec: 4.4/6
     helo: mail.example.com
     host: 1.2.3.4
     mailfrom: foo@v2+v1.example.com
-    result: fail
+    result: pass
+  v1-preferred-over-v2-regardless-of-order:
+    description: >-
+      "v=spf1" records are preferred over "spf2.0" records, regardless of
+      the order of the records in the DNS answer.
+    spec: 4.4/6
+    helo: mail.example.com
+    host: 1.2.3.4
+    mailfrom: foo@v1+v2.example.com
+    result: pass
   redundant-v2:
     description: >-
       Redundant "spf2.0" records must cause a PermError.
     spec: 4.4/8
     helo: mail.example.com
     host: 1.2.3.4
-    mailfrom: foo@v2+v2+v1.example.com
+    mailfrom: foo@v2+v2.example.com
     result: permerror
 zonedata:
   v2+v1.example.com:
     - SPF:  spf2.0/mfrom -all
     - SPF:  v=spf1 +all
-  v2+v2+v1.example.com:
+  v1+v2.example.com:
+    - SPF:  v=spf1 +all
+    - SPF:  spf2.0/mfrom -all
+  v2+v2.example.com:
     - SPF:  spf2.0/mfrom -all
     - SPF:  spf2.0/mfrom,pra -all
-    - SPF:  v=spf1 -all
