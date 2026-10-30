@@ -107,6 +107,9 @@
     Fix --socket-group being ignored unless --socket-user was also
     given (a typo compared the socket path instead of the group), and
     die with a clear message if the listening socket can't be created
+  - Security: spfquery now opens the --file argument in explicit read
+    mode. A file name ending in "|" was run as a shell command, and one
+    starting with ">" truncated the file
 
 3.20260331 2026-04-01 Australia/Melbourne
   ** Thanks to Giovanni <g.bechis@snb.it> for this change: 

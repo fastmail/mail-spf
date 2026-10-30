@@ -676,8 +676,9 @@ try {
     }
     else {
         # File request:
-        my $file = $options->{file} eq '-' ? \*STDIN : IO::File->new($options->{file})
-            or die("Could not open: $options->{file}\n");
+        # Open in explicit read mode, so a file name like "cmd |" is not run:
+        my $file = $options->{file} eq '-' ? \*STDIN : IO::File->new($options->{file}, '<')
+            or die("Could not open: $options->{file}: $!\n");
         while (<$file>) {
             chomp;
             s/^\s*//;
