@@ -10,6 +10,15 @@
   - Ensure every module's $VERSION is set by Dist::Zilla at release time,
     and manage the version number in README the same way
 
+  - Security: escape untrusted text in the Received-SPF header to
+    prevent header field injection:
+    - escape parentheses and backslashes in the explanation comment,
+      so text from a malformed SPF record or the sender identity can
+      no longer close the comment early and inject forged fields such
+      as client-ip=
+    - escape control characters (e.g. CR/LF) in the envelope-from and
+      helo fields
+
 3.20260331 2026-04-01 Australia/Melbourne
   ** Thanks to Giovanni <g.bechis@snb.it> for this change: 
   - Do not check for multiple CNAMEs if the included domain is a macro

@@ -4,9 +4,10 @@ use blib;
 
 use Error ':try';
 
-use Test::More tests => 20;
+use Test::More tests => 26;
 
 use Mail::SPF::Request;
+use Mail::SPF::Server;
 
 
 #### Class Compilation ####
@@ -80,4 +81,35 @@ BEGIN { use_ok('Mail::SPF::Result') }
     is($result->code,               'neutral',          'NeutralByDefault result code()');
     ok($result->isa_by_name('neutral-by-default'),      'NeutralByDefault isa_by_name("neutral-by-default")');
     ok($result->isa_by_name('neutral'),                 'NeutralByDefault isa_by_name("neutral")');
+}
+
+
+#### received_spf_header() escaping ####
+
+{
+    my $server  = Mail::SPF::Server->new(hostname => 'mx.example.com');
+    my $request = Mail::SPF::Request->new(
+        identity        => "foo\r\nX-Forged: yes\@example.com",
+        helo_identity   => "mta.example.com\r\nX-Forged: yes",
+        ip_address      => '192.168.0.1'
+    );
+    my $result  = Mail::SPF::Result::PermError->new($server, $request,
+        "Junk ) client-ip=10.0.0.1; receiver=victim.example.org (");
+    my $header  = $result->received_spf_header;
+
+    unlike($header, qr/[\r\n]/,                         'Received-SPF header contains no CR/LF');
+    like($header, qr/envelope-from="foo\\\\x0d\\\\x0aX-Forged: yes\@example\.com"/,
+                                                        'Received-SPF header escapes CR/LF in identity');
+    like($header, qr/helo="mta\.example\.com\\\\x0d\\\\x0aX-Forged: yes"/,
+                                                        'Received-SPF header escapes CR/LF in HELO identity');
+    like($header, qr/Junk \\\) client-ip=10\.0\.0\.1; receiver=victim\.example\.org \\\(\)/,
+                                                        'Received-SPF header escapes parentheses in comment');
+    my $stripped = $header;
+    $stripped =~ s/\\.//g;  # Remove quoted-pairs.
+    my $depth = 0;
+    for (split(//, $stripped)) { $depth++ if $_ eq '('; $depth-- if $_ eq ')'; last if $depth < 0 }
+    $stripped =~ s/\([^()]*\)//;  # Remove the (now unnested) comment.
+    my @client_ips = $stripped =~ /\bclient-ip=([^;\s]+)/g;
+    is_deeply(\@client_ips, ['192.168.0.1'],            'Received-SPF header has only the genuine client-ip');
+    is($depth, 0,                                       'Received-SPF header comment parentheses are balanced');
 }

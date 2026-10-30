@@ -423,7 +423,7 @@ sub received_spf_header {
     my $info_string;
     while (@info_pairs) {
         my $key   = shift(@info_pairs);
-        my $value = shift(@info_pairs);
+        my $value = Mail::SPF::Util->sanitize_string(shift(@info_pairs));  # Escape CR/LF etc.
         $info_string .= '; ' if defined($info_string);
         if ($value !~ /^${\dot_atom_pattern}$/o) {
             $value =~ s/(["\\])/\\$1/g;   # Escape '\' and '"' characters.
@@ -431,11 +431,16 @@ sub received_spf_header {
         }
         $info_string .= "$key=$value";
     }
+    # The explanation may contain untrusted text (e.g. record text in permerror
+    # messages, or the sender identity), so escape it as an RFC 5322 comment to
+    # prevent it from closing the comment early and injecting fields:
+    my $comment = $self->local_explanation;
+    $comment =~ s/([()\\])/\\$1/g;
     return $self->{received_spf_header} = sprintf(
         "%s: %s (%s) %s",
         $self->received_spf_header_name,
         $self->code,
-        $self->local_explanation,
+        $comment,
         $info_string
     );
 }
