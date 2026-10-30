@@ -6,7 +6,7 @@ use Error ':try';
 use Net::DNS::Resolver::Programmable;
 use Net::DNS::RR;
 
-use Test::More tests => 15;
+use Test::More tests => 21;
 
 use Mail::SPF::Server;
 use Mail::SPF::Request;
@@ -50,10 +50,11 @@ my $server = Mail::SPF::Server->new(
 );
 
 sub process {
-    my ($identity, $ip_address) = @_;
+    my ($identity, $ip_address, %request_options) = @_;
     return eval { $server->process(Mail::SPF::Request->new(
         identity    => $identity,
-        ip_address  => $ip_address || '192.168.0.9'
+        ip_address  => $ip_address || '192.168.0.9',
+        %request_options
     )) } || $@;
 }
 
@@ -121,4 +122,21 @@ foreach my $domain (
 
     $result = process('foo@' . ('a' x 64) . '.example.com');
     isa_ok($result,     'Mail::SPF::Result::None',      'Server process() identity domain with overlong label');
+}
+
+
+#### process() with empty or single-label identity domain names (RFC 7208, 4.3) ####
+
+{
+    foreach my $case (
+        [ 'foo@',               'mfrom',    'empty MAIL FROM domain'        ],
+        [ 'foo@localhost',      'mfrom',    'single-label MAIL FROM domain' ],
+        [ 'mailhost',           'helo',     'single-label HELO identity'    ]
+    ) {
+        my ($identity, $scope, $label) = @$case;
+        @queries = ();
+        my $result = process($identity, undef, scope => $scope);
+        isa_ok($result, 'Mail::SPF::Result::None',      "Server process() $label");
+        is(scalar(@queries), 0,                         "Server process() $label does not query resolver");
+    }
 }

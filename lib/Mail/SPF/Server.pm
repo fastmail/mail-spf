@@ -392,6 +392,12 @@ and C<SPF> RR types are being queried):
 Determine the authority domain, the set of acceptable SPF record versions, and
 the identity scope from the given request object.
 
+If the authority domain is taken from the identity (rather than from macro
+expansion, as for an C<include> mechanism or C<redirect> modifier) and is
+malformed or a single-label domain name, throw a
+I<Mail::SPF::ENoAcceptableRecord> exception without querying DNS (RFC 7208,
+4.3).
+
 =item 2.
 
 Query the authority domain for SPF records of the C<SPF> DNS RR type,
@@ -430,6 +436,18 @@ sub select_record {
     my $domain   = $request->authority_domain;
     my @versions = $request->versions;
     my $scope    = $request->scope;
+
+    # A malformed or single-label identity domain (e.g. from "MAIL FROM:<a@>"
+    # or "HELO localhost") has no sender policy, and must not be queried, as
+    # the resolver may expand it with its search list (RFC 7208, 4.3).
+    # Domains from macro expansion are handled by dns_lookup() (RFC 7208, 7.3):
+    if (not UNIVERSAL::isa($domain, 'Mail::SPF::MacroString')) {
+        $domain =~ /^[^.]+(?:\.[^.]+)+$/
+            and $domain !~ /[^.]{64}/
+            and length($domain) <= 253
+            or throw Mail::SPF::ENoAcceptableRecord(
+                "Malformed or single-label domain name '$domain'");
+    }
 
     # Employ identical behavior for 'v=spf1' and 'spf2.0' records, both of
     # which support SPF (code 99) and TXT type records (this may be different

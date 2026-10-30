@@ -80,6 +80,11 @@
     Control characters were already escaped, but an MTA using the
     explanation in an SMTP reply would still have sent the escaped
     text of a malicious explanation
+  - Return none without querying DNS when the identity's domain is
+    empty (e.g. "MAIL FROM:<a@>", which queried the root zone) or a
+    single-label name (e.g. "HELO mailhost", which the resolver may
+    expand with its search list and so query the receiver's internal
+    domains), as RFC 7208 requires
 
 3.20260331 2026-04-01 Australia/Melbourne
   ** Thanks to Giovanni <g.bechis@snb.it> for this change: 
