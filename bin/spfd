@@ -287,6 +287,7 @@ use IO::Handle;
 use Getopt::Long qw(:config gnu_compat);
 use Socket;
 use Mail::SPF;
+use Mail::SPF::Util;
 
 use constant TRUE   => (0 == 0);
 use constant FALSE  => not TRUE;
@@ -527,7 +528,7 @@ while (my $socket = $listen_socket->accept()) {
                 if defined(deprecated_request_keys->{$key});
             $request_values->{$key} = $value;
 
-            print("[$time] R: $key=$value\n")
+            print("[$time] R: " . Mail::SPF::Util->sanitize_string("$key=$value") . "\n")
                 if $debug;
         }
 
@@ -564,14 +565,17 @@ while (my $socket = $listen_socket->accept()) {
             smtp_comment header_comment
         )) {
             defined($response_values->{$key}) or next;
-            $socket->print("$key=$response_values->{$key}\n");
-            print("[$time] W: $key=$response_values->{$key}\n")
+            # Values may contain text from DNS or the client, which must not
+            # be able to break out of their line and inject response lines:
+            my $value = Mail::SPF::Util->sanitize_string("$response_values->{$key}");
+            $socket->print("$key=$value\n");
+            print("[$time] W: $key=$value\n")
                 if $debug;
         }
     }
     catch Mail::SPF::Exception with {
         my ($e) = @_;
-        printf("[$time] An error occurred: %s\n", $e->text);
+        printf("[$time] An error occurred: %s\n", Mail::SPF::Util->sanitize_string($e->text));
     };
 
     $socket->close();
