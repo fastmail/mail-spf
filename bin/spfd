@@ -447,7 +447,8 @@ if (defined($port)) {
         LocalAddr   => '127.0.0.1',
         LocalPort   => $port,
         ReuseAddr   => TRUE
-    );
+    )
+        or die("Unable to listen on TCP/IP port $port: $!\n");
     print("spfd (PID $$): Listening on TCP/IP port $port.\n");
     #$0 = "spfd listening on TCP port $port";
 }
@@ -455,22 +456,33 @@ elsif (defined($socket_path)) {
     require IO::Socket::UNIX;
     unlink $socket_path
         if -S $socket_path;
+    # Create the socket accessible to its owner only, until its ownership and
+    # permissions have been set:
+    my $umask = umask(0177);
     $listen_socket = IO::Socket::UNIX->new(
         Listen      => TRUE,
         Local       => $socket_path
     );
+    umask($umask);
+    $listen_socket
+        or die("Unable to listen on UNIX socket '$socket_path': $!\n");
+    # IO::Socket::UNIX truncates paths too long for sockaddr_un:
+    -S $socket_path
+        or die("Unable to create UNIX socket '$socket_path', path too long?\n");
     print("spfd (PID $$): Listening on UNIX socket '$socket_path'.\n");
     #$0 = "spfd listening on UNIX socket $socket_path";
 
     $socket_user  = normalize_uid($socket_user);
     $socket_group = normalize_gid($socket_group);
     chown($socket_user, $socket_group, $socket_path)
-        or die("Unable to chown($socket_user, $socket_group) socket '$socket_path'")
-        if $socket_user != -1 or $socket_path != -1;
+        or die("Unable to chown($socket_user, $socket_group) socket '$socket_path': $!")
+        if $socket_user != -1 or $socket_group != -1;
 
+    # Without explicit permissions, apply those the umask would have given:
+    $socket_perms = sprintf('%o', 0777 & ~$umask)
+        if not defined($socket_perms);
     chmod(oct($socket_perms), $socket_path)
-        or die("Unable to chmod($socket_perms) socket '$socket_path': $!")
-        if defined($socket_perms);
+        or die("Unable to chmod($socket_perms) socket '$socket_path': $!");
 }
 
 if (defined($set_user)) {
