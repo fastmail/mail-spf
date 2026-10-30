@@ -2,7 +2,7 @@ use strict;
 use warnings;
 use blib;
 
-use Test::More tests => 8;
+use Test::More tests => 6;
 
 use Mail::SPF::Request;
 
@@ -36,17 +36,4 @@ BEGIN { use_ok('Mail::SPF::Mech::IP6') }
                                                 0,      'IP6 mech match() IPv4 address never matches IPv4-mapped network');
     is($match->($mech_v4_mapped, '::ffff:192.168.0.1'),
                                                 0,      'IP6 mech match() IPv4-mapped IPv6 address never matches');
-
-    # match() must not enumerate the hosts of the request's IP address object,
-    # which dies (or takes very long) for a large network:
-    my $result = eval {
-        local $SIG{ALRM} = sub { die("timeout\n") };
-        alarm(10);
-        my $result = $match->($mech, '2001:db8::/64');
-        alarm(0);
-        $result;
-    };
-    alarm(0);
-    is($@,                                      '',     'IP6 mech match() IPv6 network request address completes');
-    is($result,                                 1,      'IP6 mech match() IPv6 network request address in network');
 }

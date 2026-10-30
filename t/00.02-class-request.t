@@ -2,7 +2,7 @@ use strict;
 use warnings;
 use blib;
 
-use Test::More tests => 43;
+use Test::More tests => 46;
 
 use constant valid_mfrom_identity   => ( identity   => 'fred@example.com' );
 use constant valid_ip_address       => ( ip_address => '192.168.0.1' );
@@ -190,6 +190,24 @@ BEGIN { use_ok('Mail::SPF::Request') }
         ip_address  => '::ffff:192.168.0.1'
     );
     is($request->ip_address,        '192.168.0.1/32',   'Treat IPv4-mapped IPv6 address as IPv6 address');
+
+    $request = Mail::SPF::Request->new(
+        valid_mfrom_identity,
+        ip_address  => '2001:db8::1/128'
+    );
+    is($request->ip_address, NetAddr::IP->new('2001:db8::1'), 'Accept IPv6 host address with /128 prefix');
+
+    eval { Mail::SPF::Request->new(
+        valid_mfrom_identity,
+        ip_address  => '10.0.0.0/8'
+    ) };
+    isa_ok($@, 'Mail::SPF::EInvalidOptionValue',        'Detect IPv4 network as ip_address');
+
+    eval { Mail::SPF::Request->new(
+        valid_mfrom_identity,
+        ip_address  => NetAddr::IP->new('2001:db8::/64')
+    ) };
+    isa_ok($@, 'Mail::SPF::EInvalidOptionValue',        'Detect IPv6 network NetAddr::IP object as ip_address');
 }
 
 

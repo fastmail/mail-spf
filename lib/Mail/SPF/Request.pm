@@ -189,7 +189,8 @@ I<Required> for checks with the C<helo>, C<mfrom>, and C<pra> scopes.  Either a
 string or a I<NetAddr::IP> object denoting the IP address of the host claiming
 the identity that is being checked.  Can be either an IPv4 or an IPv6 address.
 An IPv4-mapped IPv6 address (e.g. '::ffff:192.168.0.1') is treated as an IPv4
-address.
+address.  It must be a single host address; a network (e.g. '10.0.0.0/8') is
+rejected with a I<Mail::SPF::EInvalidOptionValue> exception.
 
 =item B<helo_identity>
 
@@ -299,6 +300,11 @@ sub new {
             or throw Mail::SPF::EInvalidOptionValue("Invalid IP address '$self->{ip_address}'");
         $self->{ip_address} = $ip_address;
     }
+
+    # The IP address must be a single host, not a network:
+    $self->{ip_address}->masklen == ($self->{ip_address}->version == 4 ? 32 : 128)
+        or throw Mail::SPF::EInvalidOptionValue(
+            "IP address '$self->{ip_address}' is not a single host address");
 
     # Convert IPv4 address to IPv4-mapped IPv6 address:
     if (Mail::SPF::Util->ipv6_address_is_ipv4_mapped($self->{ip_address})) {

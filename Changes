@@ -70,6 +70,10 @@
     check and authority domain. Also, exceeding the void look-up limit
     while expanding the explanation made authority_explanation() die;
     it now falls back to the default explanation
+  - Reject a network (e.g. '10.0.0.0/8') as a request's ip_address
+    with an EInvalidOptionValue exception. NetAddr::IP accepted it,
+    which made no sense for SPF and changed the meaning of the
+    mechanisms' address checks
 
 3.20260331 2026-04-01 Australia/Melbourne
   ** Thanks to Giovanni <g.bechis@snb.it> for this change: 
