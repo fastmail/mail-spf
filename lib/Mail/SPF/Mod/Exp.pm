@@ -155,6 +155,11 @@ sub process {
         my $text = $txt_rrs[0]->can('txtdata')
                  ? join('', $txt_rrs[0]->txtdata)
                  : join('', $txt_rrs[0]->char_str_list);
+        # The explanation string may contain printable ASCII and spaces only
+        # (RFC 7208, 6.2), so e.g. no CR/LF can end up in an SMTP reply:
+        $text !~ /[^\x20-\x7e]/
+            or $server->throw_result('permerror', $request,
+                "Invalid characters in authority explanation string at domain '$exp_domain'");
         my $explanation = Mail::SPF::MacroString->new(
           text            => $text,
           server          => $server,

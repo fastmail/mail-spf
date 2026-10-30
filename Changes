@@ -74,6 +74,12 @@
     with an EInvalidOptionValue exception. NetAddr::IP accepted it,
     which made no sense for SPF and changed the meaning of the
     mechanisms' address checks
+  - Ignore an explanation string (exp= TXT record) that contains
+    anything other than printable ASCII characters and spaces, as
+    RFC 7208 requires, and use the default explanation instead.
+    Control characters were already escaped, but an MTA using the
+    explanation in an SMTP reply would still have sent the escaped
+    text of a malicious explanation
 
 3.20260331 2026-04-01 Australia/Melbourne
   ** Thanks to Giovanni <g.bechis@snb.it> for this change: 
