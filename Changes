@@ -44,6 +44,10 @@
     than 63 bytes, or name longer than 253 bytes) are now treated as
     non-existent without querying the resolver, per RFC 7208, and
     other resolver exceptions result in temperror
+  - Check the IP address version in the ip6 mechanism using the public
+    NetAddr::IP API, rather than enumerating the request's address via
+    an overloaded array dereference and reading an internal field,
+    which died if the request's IP address was a large network
 
 3.20260331 2026-04-01 Australia/Melbourne
   ** Thanks to Giovanni <g.bechis@snb.it> for this change: 

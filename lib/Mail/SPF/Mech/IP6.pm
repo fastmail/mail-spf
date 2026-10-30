@@ -142,9 +142,10 @@ request's IP address, or B<false> otherwise.  See RFC 4408, 5.6, for details.
 
 sub match {
     my ($self, $server, $request) = @_;
-    if($request->{ip_address}[0]->{isv6} eq 0) {
-      return FALSE;
-    }
+    # IPv4 (and IPv4-mapped IPv6, which Mail::SPF::Request normalizes to IPv4)
+    # addresses never match ip6 (RFC 7208, 5.6):
+    return FALSE
+        if $request->ip_address->version != 6;
     return $self->ip_network->contains($request->ip_address_v6);
 }
 
