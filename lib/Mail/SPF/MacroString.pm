@@ -249,14 +249,23 @@ sub expand {
                     }
                 }
                 elsif ($char eq 'p') {  # RFC 4408, 8.1/22
-                    try {
-                        $value = Mail::SPF::Util->valid_domain_for_ip_address(
-                            $server, $request, $request->ip_address, $request->authority_domain,
-                            TRUE, TRUE
-                        );
+                    # Cache the validated domain name per SPF check, as each
+                    # look-up costs a PTR and up to 10 A/AAAA queries, which
+                    # (in explanation strings) are not subject to any limit:
+                    my $p_macro_cache = $request->root_request->state('p_macro_cache')
+                        || $request->root_request->state('p_macro_cache', {});
+                    my $authority_domain = lc($request->authority_domain);
+                    if (not exists($p_macro_cache->{$authority_domain})) {
+                        try {
+                            $value = Mail::SPF::Util->valid_domain_for_ip_address(
+                                $server, $request, $request->ip_address, $request->authority_domain,
+                                TRUE, TRUE
+                            );
+                        }
+                        catch Mail::SPF::EDNSError with {};
+                        $p_macro_cache->{$authority_domain} = $value || 'unknown';
                     }
-                    catch Mail::SPF::EDNSError with {};
-                    $value ||= 'unknown';
+                    $value = $p_macro_cache->{$authority_domain};
                 }
                 elsif ($char eq 'v') {  # RFC 4408, 8.1/6/7
                     my $ip_address_version = $request->ip_address->version;

@@ -62,6 +62,14 @@
     between queries, although the documentation and RFC 4406 said
     "spf2.0" records were preferred. Sender ID is historic (RFC 6686),
     so "v=spf1" is now deliberately preferred
+  - Security: a "p" macro in an explanation string (exp= TXT record)
+    made a PTR look-up and up to 10 A/AAAA look-ups for every
+    occurrence, not limited by the RFC 7208 DNS look-up limits, so a
+    sender could make a single SPF check send thousands of DNS
+    queries. The "p" macro value is now looked up at most once per SPF
+    check and authority domain. Also, exceeding the void look-up limit
+    while expanding the explanation made authority_explanation() die;
+    it now falls back to the default explanation
 
 3.20260331 2026-04-01 Australia/Melbourne
   ** Thanks to Giovanni <g.bechis@snb.it> for this change: 

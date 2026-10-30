@@ -571,8 +571,15 @@ sub authority_explanation {
               $authority_explanation = $server->default_authority_explanation->new(request => $request)->expand;
             }
         }
-        catch Mail::SPF::EInvalidMacroString with {};
-            # Ignore expansion errors and leave authority explanation undefined.
+        # Ignore expansion errors (e.g. invalid macros, or the void look-ups
+        # limit being exceeded by 'p' macros) and leave authority explanation
+        # undefined:
+        catch Mail::SPF::Exception with {
+            $authority_explanation = undef;
+        }
+        catch Mail::SPF::Result with {
+            $authority_explanation = undef;
+        };
     }
 
     # If no authority explanation could be determined so far...
