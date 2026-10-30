@@ -88,6 +88,13 @@
   - Security: spfd now escapes control characters in the values of
     its response, so text from DNS or the client cannot add lines to
     the response, and in its debug output
+  - Security: fix spfd's privilege dropping with --set-user and
+    --set-group. An unknown user or group name was not reported (due to
+    an operator precedence bug) and could leave spfd running as root,
+    the invoking user's supplementary groups (e.g. root's) were kept,
+    and --set-user without --set-group kept group ID 0. spfd now dies on
+    unknown names, drops the supplementary groups, and changes to the
+    user's primary group if no group is given
 
 3.20260331 2026-04-01 Australia/Melbourne
   ** Thanks to Giovanni <g.bechis@snb.it> for this change: 

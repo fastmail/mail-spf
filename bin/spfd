@@ -43,7 +43,8 @@ filesystem permissions with the B<--socket-perms> option.
 
 Generally, spfd can be instructed with the B<--set-user> and B<--set-group>
 options to drop root privileges and change to another user and group before it
-starts listening for requests.
+starts listening for requests.  The supplementary groups are dropped as well.
+If only B<--set-user> is given, spfd changes to that user's primary group.
 
 The B<--version> form prints version information of spfd.  The B<--help> form
 prints usage information for spfd.
@@ -461,15 +462,29 @@ elsif (defined($socket_path)) {
         if defined($socket_perms);
 }
 
+if (defined($set_user)) {
+    $set_user = normalize_uid($set_user);
+    # Without an explicit group, switch to the user's primary group, rather
+    # than keeping root's:
+    if (not defined($set_group)) {
+        $set_group = (getpwuid($set_user))[3];
+        defined($set_group)
+            or die("Unable to determine primary group of user ID $set_user, use --set-group\n");
+    }
+}
+
 if (defined($set_group)) {
     $set_group = normalize_gid($set_group);
-    $( = $) = $set_group;
+    # Assigning a list of GIDs to $) also calls setgroups(), dropping the
+    # supplementary groups inherited from the invoking user (e.g. root's):
+    $) = "$set_group $set_group";
+    $( = $set_group;
     $( == $set_group and $) == $set_group
-        or die("Unable to setgid($set_group): $!");
+        and not grep($_ != $set_group, split(' ', $)))
+        or die("Unable to setgid($set_group) and drop supplementary groups: $!");
 }
 
 if (defined($set_user)) {
-    $set_user = normalize_uid($set_user);
     $< = $> = $set_user;
     $< == $set_user and $> == $set_user
         or die("Unable to setuid($set_user): $!");
@@ -589,17 +604,21 @@ while (my $socket = $listen_socket->accept()) {
 sub normalize_uid {
     my ($uid) = @_;
     return -1 if not defined($uid);
-    return getpwnam($uid)
-        or die("Unknown user '$uid'")
-        if $uid =~ /\D/;
+    if ($uid =~ /\D/) {
+        my $name = $uid;
+        defined($uid = getpwnam($name))
+            or die("Unknown user '$name'\n");
+    }
     return $uid;
 }
 
 sub normalize_gid {
     my ($gid) = @_;
     return -1 if not defined($gid);
-    return getgrnam($gid)
-        or die("Unknown group '$gid'")
-        if $gid =~ /\D/;
+    if ($gid =~ /\D/) {
+        my $name = $gid;
+        defined($gid = getgrnam($name))
+            or die("Unknown group '$name'\n");
+    }
     return $gid;
 }
