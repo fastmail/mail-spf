@@ -46,6 +46,10 @@ options to drop root privileges and change to another user and group before it
 starts listening for requests.  The supplementary groups are dropped as well.
 If only B<--set-user> is given, spfd changes to that user's primary group.
 
+spfd serves at most 64 connections at a time, and closes further connections
+immediately.  A connection is closed after 60 seconds, and when a request
+has more than 32 lines or a line longer than 1024 bytes.
+
 The B<--version> form prints version information of spfd.  The B<--help> form
 prints usage information for spfd.
 
@@ -287,6 +291,7 @@ use Error ':try';
 use IO::Handle;
 use Getopt::Long qw(:config gnu_compat);
 use Socket;
+use POSIX ':sys_wait_h';
 use Mail::SPF;
 use Mail::SPF::Util;
 
@@ -294,6 +299,12 @@ use constant TRUE   => (0 == 0);
 use constant FALSE  => not TRUE;
 
 use constant default_port   => 5970;
+
+# Limits for client connections:
+use constant max_children               => 64;      # concurrent connections
+use constant request_timeout            => 60;      # seconds per connection
+use constant max_request_lines          => 32;
+use constant max_request_line_length    => 1024;    # bytes, including newline
 
 use constant deprecated_request_keys => {
     sender      => 'identity',
@@ -505,22 +516,40 @@ my $spf_server = Mail::SPF::Server->new(
 # Handle Client Connections
 ##############################################################################
 
+my %children;
+
 while (my $socket = $listen_socket->accept()) {
-    if (fork) {
-        # Parent process.
+    # Reap finished children, and keep count of the others.  (Reaping here
+    # rather than in a SIGCHLD handler avoids a race with recording new ones.)
+    while ((my $pid = waitpid(-1, WNOHANG)) > 0) {
+        delete($children{$pid});
+    }
+
+    my $pid = keys(%children) < max_children ? fork : undef;
+    if (not defined($pid)) {
+        # Too many concurrent connections, or fork failed:
         close($socket);
-        wait;  # Reap our immediate child (the grand-child will run on its own).
         next;
     }
-    elsif (fork) {
-        # Child process, parent of grand-child process.
-        # The child exits immediately in order to avoid zombies:
-        exit;
+    elsif ($pid) {
+        # Parent process.
+        $children{$pid} = TRUE;
+        close($socket);
+        next;
     }
 
-    # Grand-child process.
+    # Child process.
+    $listen_socket->close();
 
     my $time = gmtime;
+
+    # Don't let a slow or stalled client (or DNS) keep the process forever:
+    $SIG{ALRM} = sub {
+        print("[$time] Request timed out\n");
+        exit(1);
+    };
+    alarm(request_timeout);
+
     if ($debug) {
         my $peerinfo =
             $listen_socket->isa('IO::Socket::INET') ?
@@ -534,7 +563,10 @@ while (my $socket = $listen_socket->accept()) {
         $socket->autoflush(TRUE);
 
         my $request_values = {};
-        while (<$socket>) {
+        my $request_lines  = 0;
+        while (defined($_ = read_request_line($socket))) {
+            ++$request_lines <= max_request_lines
+                or die("Too many request lines\n");
             s/\s+$//;
             last if /^$/;
             my ($key, $value) = split(/=/, $_, 2);
@@ -591,6 +623,11 @@ while (my $socket = $listen_socket->accept()) {
     catch Mail::SPF::Exception with {
         my ($e) = @_;
         printf("[$time] An error occurred: %s\n", Mail::SPF::Util->sanitize_string($e->text));
+    }
+    otherwise {
+        my ($e) = @_;
+        (my $text = "$e") =~ s/\s+$//;
+        printf("[$time] An error occurred: %s\n", Mail::SPF::Util->sanitize_string($text));
     };
 
     $socket->close();
@@ -600,6 +637,22 @@ while (my $socket = $listen_socket->accept()) {
 
 # Helper Functions
 ##############################################################################
+
+sub read_request_line {
+    # Reads one line of at most max_request_line_length bytes, including the
+    # newline.  Returns undef at the end of input, and dies on a longer line.
+    my ($socket) = @_;
+    my $line = '';
+    while (length($line) < max_request_line_length) {
+        my $char = $socket->getc();
+        return length($line) ? $line : undef
+            if not defined($char);
+        $line .= $char;
+        return $line
+            if $char eq "\n";
+    }
+    die("Request line too long\n");
+}
 
 sub normalize_uid {
     my ($uid) = @_;
