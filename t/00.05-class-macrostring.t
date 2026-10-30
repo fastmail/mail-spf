@@ -9,7 +9,7 @@ use Net::DNS::RR;
 use Mail::SPF::Server;
 use Mail::SPF::Request;
 
-use Test::More tests => 12;
+use Test::More tests => 13;
 
 use constant valid_macrostring_text => '%{ir}.%{v}._spf.%{d2}';
 use constant valid_macrostring_expanded
@@ -81,4 +81,16 @@ BEGIN { use_ok('Mail::SPF::MacroString') }
     $macrostring->context($server, $request);
     is($macrostring->expand, valid_macrostring_expanded, 'Late-context macro-string context-ful expand()');
     is($macrostring,         valid_macrostring_expanded, 'Late-context macro-string context-ful stringify() (+overloading)');
+}
+
+
+#### Expansion across line breaks ####
+
+{
+    my $macrostring = Mail::SPF::MacroString->new(
+        text    => "foo\r\nbar %{d2}",
+        server  => $server,
+        request => $request
+    );
+    is($macrostring->expand, "foo\r\nbar example.com",    'Macro-string expand() after line break');
 }

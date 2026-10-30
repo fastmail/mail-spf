@@ -204,7 +204,7 @@ sub expand {
     my $expanded = '';
     pos($text) = 0;
 
-    while ($text =~ m/ \G (.*?) %(.) /cgx) {
+    while ($text =~ m/ \G (.*?) %(.) /cgsx) {
         $expanded .= $1;
         my $key = $2;
         my $pos = pos($text) - 2;

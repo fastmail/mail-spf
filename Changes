@@ -18,6 +18,8 @@
       as client-ip=
     - escape control characters (e.g. CR/LF) in the envelope-from and
       helo fields
+  - Fix macro expansion stopping at the first line break in a macro
+    string, leaving later macros unexpanded
 
 3.20260331 2026-04-01 Australia/Melbourne
   ** Thanks to Giovanni <g.bechis@snb.it> for this change: 
