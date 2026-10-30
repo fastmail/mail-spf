@@ -325,6 +325,12 @@ __PACKAGE__->make_accessor($_, TRUE)
 
 Returns the text message of the result object.
 
+Be aware that the text message may contain untrusted data, such as the text of
+a malformed SPF record published by the authority domain, including control
+characters.  Use L</local_explanation> or L</stringify>, which escape such
+characters, when the text is to be included in a header field, SMTP response,
+or log.
+
 =item B<stringify>: returns I<string>
 
 Returns the result's name and text message formatted as a string.  You can
@@ -524,7 +530,8 @@ I<Mail::SPF::EInvalidMacroString>
 Returns the authority domain's explanation for the result.  Be aware that the
 authority domain may be a malicious party and thus the authority explanation
 should not be trusted blindly.  See RFC 4408, 10.5, for a detailed discussion
-of this issue.
+of this issue.  Control characters (such as CR and LF) and non-ASCII characters
+in the explanation are escaped (see L<Mail::SPF::Util/sanitize_string>).
 
 =back
 
@@ -575,7 +582,7 @@ sub authority_explanation {
             $server->default_authority_explanation->new(request => $request)->expand;
     }
 
-    return $self->{authority_explanation} = $authority_explanation;
+    return $self->{authority_explanation} = Mail::SPF::Util->sanitize_string($authority_explanation);
 }
 
 package Mail::SPF::Result::SoftFail;

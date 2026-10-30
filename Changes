@@ -20,6 +20,9 @@
       helo fields
   - Fix macro expansion stopping at the first line break in a macro
     string, leaving later macros unexpanded
+  - Security: authority_explanation now escapes control and non-ASCII
+    characters in the explanation string (exp= TXT record) published in
+    DNS, and document that the result text() may contain untrusted data
 
 3.20260331 2026-04-01 Australia/Melbourne
   ** Thanks to Giovanni <g.bechis@snb.it> for this change: 

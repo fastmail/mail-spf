@@ -4,10 +4,11 @@ use blib;
 
 use Error ':try';
 
-use Test::More tests => 26;
+use Test::More tests => 28;
 
 use Mail::SPF::Request;
 use Mail::SPF::Server;
+use Mail::SPF::MacroString;
 
 
 #### Class Compilation ####
@@ -112,4 +113,26 @@ BEGIN { use_ok('Mail::SPF::Result') }
     my @client_ips = $stripped =~ /\bclient-ip=([^;\s]+)/g;
     is_deeply(\@client_ips, ['192.168.0.1'],            'Received-SPF header has only the genuine client-ip');
     is($depth, 0,                                       'Received-SPF header comment parentheses are balanced');
+}
+
+
+#### authority_explanation() escaping ####
+
+{
+    my $server  = Mail::SPF::Server->new(hostname => 'mx.example.com');
+    my $request = Mail::SPF::Request->new(
+        identity        => 'foo@example.com',
+        ip_address      => '192.168.0.1'
+    );
+    $request->state('authority_explanation', Mail::SPF::MacroString->new(
+        text            => "Rejected\r\nX-Forged: yes for %{d}",
+        server          => $server,
+        request         => $request,
+        is_explanation  => 1
+    ));
+    my $explanation = Mail::SPF::Result::Fail->new($server, $request)->authority_explanation;
+
+    unlike($explanation, qr/[\r\n]/,                    'Fail result authority_explanation() contains no CR/LF');
+    is($explanation, 'Rejected\x0d\x0aX-Forged: yes for example.com',
+                                                        'Fail result authority_explanation() escapes CR/LF');
 }
