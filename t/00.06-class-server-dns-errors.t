@@ -6,7 +6,7 @@ use Error ':try';
 use Net::DNS::Resolver::Programmable;
 use Net::DNS::RR;
 
-use Test::More tests => 29;
+use Test::More tests => 35;
 
 use Mail::SPF::Server;
 use Mail::SPF::Request;
@@ -150,5 +150,15 @@ foreach my $case (
         my $result = process($identity, undef, scope => $scope);
         isa_ok($result, 'Mail::SPF::Result::None',      "Server process() $label");
         is(scalar(@queries), 0,                         "Server process() $label does not query resolver");
+
+        # Likewise with a proposed record:
+        @queries = ();
+        $result = eval { $server->process(Mail::SPF::Request->new(
+            identity    => $identity,
+            ip_address  => '192.168.0.9',
+            scope       => $scope
+        ), { record => 'v=spf1 a mx -all' }) } || $@;
+        isa_ok($result, 'Mail::SPF::Result::None',      "Server process() with proposed record and $label");
+        is(scalar(@queries), 0,                         "Server process() with proposed record and $label does not query resolver");
     }
 }

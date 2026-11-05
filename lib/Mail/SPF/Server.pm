@@ -325,7 +325,9 @@ DNS for the authority domain's record.  This allows testing a not-yet-
 published record against the real DNS state of any domains it references
 (e.g. via C<include> or C<a>/C<mx>), without first having to publish it.  See
 the description of the L</record_from_string> method for details of how the
-record is parsed and validated.
+record is parsed and validated.  As with a published record, the result is
+C<none> without any DNS queries if the identity's domain is malformed or a
+single-label domain name (see L</select_record>).
 
 =back
 
@@ -342,9 +344,15 @@ sub process {
 
     my $result;
     try {
-        my $record = defined($options->{record})
-            ? $self->record_from_string($options->{record}, $request)
-            : $self->select_record($request);
+        my $record;
+        if (defined($options->{record})) {
+            # As for a published record, a malformed identity domain has none:
+            $self->_check_authority_domain($request);
+            $record = $self->record_from_string($options->{record}, $request);
+        }
+        else {
+            $record = $self->select_record($request);
+        }
         $request->record($record);
         $record->eval($self, $request);
     }
@@ -441,17 +449,7 @@ sub select_record {
     my @versions = $request->versions;
     my $scope    = $request->scope;
 
-    # A malformed or single-label identity domain (e.g. from "MAIL FROM:<a@>"
-    # or "HELO localhost") has no sender policy, and must not be queried, as
-    # the resolver may expand it with its search list (RFC 7208, 4.3).
-    # Domains from macro expansion are handled by dns_lookup() (RFC 7208, 7.3):
-    if (not UNIVERSAL::isa($domain, 'Mail::SPF::MacroString')) {
-        $domain =~ /^[^.]+(?:\.[^.]+)+$/
-            and $domain !~ /[^.]{64}/
-            and length($domain) <= 253
-            or throw Mail::SPF::ENoAcceptableRecord(
-                "Malformed or single-label domain name '$domain'");
-    }
+    $self->_check_authority_domain($request);
 
     # Employ identical behavior for 'v=spf1' and 'spf2.0' records, both of
     # which support SPF (code 99) and TXT type records (this may be different
@@ -540,6 +538,23 @@ sub select_record {
             "sender policies found");  # RFC 4408, 4.5/6
 
     return $records[0];
+}
+
+sub _check_authority_domain {
+    my ($self, $request) = @_;
+    my $domain = $request->authority_domain;
+    # A malformed or single-label identity domain (e.g. from "MAIL FROM:<a@>"
+    # or "HELO localhost") has no sender policy, and must not be queried, as
+    # the resolver may expand it with its search list (RFC 7208, 4.3).
+    # Domains from macro expansion are handled by dns_lookup() (RFC 7208, 7.3):
+    if (not UNIVERSAL::isa($domain, 'Mail::SPF::MacroString')) {
+        $domain =~ /^[^.]+(?:\.[^.]+)+$/
+            and $domain !~ /[^.]{64}/
+            and length($domain) <= 253
+            or throw Mail::SPF::ENoAcceptableRecord(
+                "Malformed or single-label domain name '$domain'");
+    }
+    return;
 }
 
 =item B<get_acceptable_records_from_packet($packet, $rr_type, \@versions, $scope, $domain)>:
