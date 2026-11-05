@@ -6,7 +6,7 @@ use Error ':try';
 use Net::DNS::Resolver::Programmable;
 use Net::DNS::RR;
 
-use Test::More tests => 35;
+use Test::More tests => 37;
 
 use Mail::SPF::Server;
 use Mail::SPF::Request;
@@ -161,4 +161,10 @@ foreach my $case (
         isa_ok($result, 'Mail::SPF::Result::None',      "Server process() with proposed record and $label");
         is(scalar(@queries), 0,                         "Server process() with proposed record and $label does not query resolver");
     }
+
+    # A fully qualified authority domain is valid:
+    my $result = process('foo@example.com', '192.168.0.1', authority_domain => 'example.com.');
+    isa_ok($result, 'Mail::SPF::Result::Pass',          'Server process() with fully qualified authority domain');
+    $result = process('foo@example.com', '192.168.0.1', authority_domain => '.');
+    isa_ok($result, 'Mail::SPF::Result::None',          'Server process() with root domain as authority domain');
 }

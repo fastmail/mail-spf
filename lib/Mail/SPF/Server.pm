@@ -548,6 +548,9 @@ sub _check_authority_domain {
     # the resolver may expand it with its search list (RFC 7208, 4.3).
     # Domains from macro expansion are handled by dns_lookup() (RFC 7208, 7.3):
     if (not UNIVERSAL::isa($domain, 'Mail::SPF::MacroString')) {
+        # An authority_domain passed to Mail::SPF::Request may be fully
+        # qualified, i.e. end in a dot (as dns_lookup() allows):
+        $domain =~ s/\.$//;
         $domain =~ /^[^.]+(?:\.[^.]+)+$/
             and $domain !~ /[^.]{64}/
             and length($domain) <= 253
