@@ -41,9 +41,11 @@
     As invalid names can come from macros expanded with the sender's
     local part or HELO name, a sender could turn a domain's -all
     policy into none. Invalid domain names (empty label, label longer
-    than 63 bytes, or name longer than 253 bytes) are now treated as
-    non-existent without querying the resolver, per RFC 7208, and
-    other resolver exceptions result in temperror
+    than 63 bytes, or name longer than 253 bytes, counted the way
+    Net::DNS does, i.e. in bytes of UTF-8 and reading escapes such as
+    "\.") are now treated as non-existent without querying the
+    resolver, per RFC 7208, and other resolver exceptions result in
+    temperror
   - Check the IP address version in the ip6 mechanism using the public
     NetAddr::IP API, rather than enumerating the request's address via
     an overloaded array dereference and reading an internal field,

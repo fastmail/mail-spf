@@ -34,6 +34,9 @@ use Mail::SPF::Result;
 use constant TRUE   => (0 == 0);
 use constant FALSE  => not TRUE;
 
+# Net::DNS::DomainName is available with Net::DNS 0.69 and later:
+use constant have_net_dns_domainname => eval { require Net::DNS::DomainName; TRUE };
+
 use constant record_classes_by_version => {
     1   => 'Mail::SPF::v1::Record',
     2   => 'Mail::SPF::v2::Record'
@@ -669,11 +672,18 @@ sub dns_lookup {
     $domain =~ s/^(.*?)\.?$/\L$1/;  # Normalize domain.
 
     # Treat invalid domain names as non-existent (RFC 7208, 4.3/1, 4.8/5),
-    # as no DNS query can be composed from them:
+    # as no DNS query can be composed from them.  Also check the name the way
+    # Net::DNS composes the query, as it reads escapes (e.g. "\."), and counts
+    # bytes of labels encoded as UTF-8 (or IDN), so that a sender cannot make
+    # it fail (and so cause a temperror) with a name that passes the checks:
     if (
         $domain =~ /^\.|\.\./ or
         $domain =~ /[^.]{64}/ or
-        length($domain) > 253
+        length($domain) > 253 or
+        (
+            have_net_dns_domainname and
+            not eval { length(Net::DNS::DomainName->new($domain)->encode) <= 255 }
+        )
     ) {
         $packet = Net::DNS::Packet->new();
         $packet->header->rcode('NXDOMAIN');

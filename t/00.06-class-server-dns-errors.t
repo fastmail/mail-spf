@@ -6,7 +6,7 @@ use Error ':try';
 use Net::DNS::Resolver::Programmable;
 use Net::DNS::RR;
 
-use Test::More tests => 21;
+use Test::More tests => 29;
 
 use Mail::SPF::Server;
 use Mail::SPF::Request;
@@ -61,14 +61,20 @@ sub process {
 
 #### dns_lookup() with invalid domain names ####
 
-foreach my $domain (
-    'foo..example.com',
-    ('a' x 64) . '.example.com',
-    join('.', ('a' x 63) x 4) . '.com'
+foreach my $case (
+    [ 'foo..example.com',                           'with empty label'                      ],
+    [ ('a' x 64) . '.example.com',                  'with overlong label'                   ],
+    [ join('.', ('a' x 63) x 4) . '.com',           'overlong'                              ],
+    # Net::DNS counts the bytes of labels encoded as UTF-8:
+    [ ("\x{e9}" x 32) . '.example.com',             'with label of 64 bytes in UTF-8'       ],
+    [ join('.', ("\x{e9}" x 20) x 7) . '.com',      'of over 255 bytes in UTF-8'            ],
+    # Net::DNS reads "\." as a dot within a label:
+    [ ('a' x 40) . '\\.' . ('b' x 40) . '.example.com', 'with overlong label with escaped dot' ]
 ) {
+    my ($domain, $description) = @$case;
     @queries = ();
     my $packet = eval { $server->dns_lookup($domain, 'A') };
-    my $label = 'Server dns_lookup() of invalid domain ' . substr($domain, 0, 20) . '...';
+    my $label = "Server dns_lookup() of invalid domain $description";
     is(($packet ? $packet->header->rcode : "error: $@"), 'NXDOMAIN', "$label NXDOMAIN");
     is(scalar(@queries),        0,                      "$label does not query resolver");
 }
@@ -111,6 +117,12 @@ foreach my $domain (
 
     $result = process('"foo..bar"@macro2.example.com');
     isa_ok($result,     'Mail::SPF::Result::Fail',      'Server process() local-part with empty label in later mechanism');
+
+    $result = process(("\x{e9}" x 32) . '@macro.example.com');
+    isa_ok($result,     'Mail::SPF::Result::Fail',      'Server process() local-part of 64 bytes in UTF-8');
+
+    $result = process(('a' x 40) . '\\.' . ('b' x 40) . '@macro.example.com');
+    isa_ok($result,     'Mail::SPF::Result::Fail',      'Server process() local-part with escaped dot');
 }
 
 
