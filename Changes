@@ -95,8 +95,8 @@
     an operator precedence bug) and could leave spfd running as root,
     the invoking user's supplementary groups (e.g. root's) were kept,
     and --set-user without --set-group kept group ID 0. spfd now dies on
-    unknown names, drops the supplementary groups, and changes to the
-    user's primary group if no group is given
+    unknown names, drops the supplementary groups when started as root,
+    and changes to the user's primary group if no group is given
   - Security: limit spfd to 64 concurrent connections, 60 seconds per
     connection, and 32 request lines of at most 1024 bytes, so a local
     client can no longer exhaust the process table or memory with idle,

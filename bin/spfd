@@ -501,13 +501,23 @@ if (defined($set_user)) {
 
 if (defined($set_group)) {
     $set_group = normalize_gid($set_group);
-    # Assigning a list of GIDs to $) also calls setgroups(), dropping the
-    # supplementary groups inherited from the invoking user (e.g. root's):
-    $) = "$set_group $set_group";
-    $( = $set_group;
-    $( == $set_group and $) == $set_group
-        and not grep($_ != $set_group, split(' ', $)))
-        or die("Unable to setgid($set_group) and drop supplementary groups: $!");
+    if ($> == 0) {
+        # Assigning a list of GIDs to $) also calls setgroups(), dropping the
+        # supplementary groups inherited from the invoking user (e.g. root's):
+        $) = "$set_group $set_group";
+        $( = $set_group;
+        $( == $set_group and $) == $set_group
+            and not grep($_ != $set_group, split(' ', $)))
+            or die("Unable to setgid($set_group) and drop supplementary groups: $!");
+    }
+    else {
+        # Without root privileges (e.g. if already started as the target user,
+        # as with systemd's User=), the groups can't be changed, so they must
+        # already be as requested.  The target user's supplementary groups are
+        # kept then.
+        $( == $set_group and $) == $set_group
+            or die("Unable to setgid($set_group): not running as root\n");
+    }
 }
 
 if (defined($set_user)) {
