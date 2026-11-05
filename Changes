@@ -1,5 +1,7 @@
 {{$NEXT}}
 
+3.20261105 2026-11-06 Australia/Melbourne
+
   ** Thanks to Giovanni <g.bechis@snb.it> for these changes:
   - RFC 7208 says there MUST be a limit of no more than 10 MX records
     looked up and checked; throw a permerror when the limit is exceeded
