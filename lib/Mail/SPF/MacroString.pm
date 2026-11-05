@@ -254,8 +254,8 @@ sub expand {
                     # (in explanation strings) are not subject to any limit:
                     my $p_macro_cache = $request->root_request->state('p_macro_cache')
                         || $request->root_request->state('p_macro_cache', {});
-                    my $authority_domain = lc($request->authority_domain);
-                    if (not exists($p_macro_cache->{$authority_domain})) {
+                    my $cache_key = join(' ', $request->ip_address, lc($request->authority_domain));
+                    if (not exists($p_macro_cache->{$cache_key})) {
                         try {
                             $value = Mail::SPF::Util->valid_domain_for_ip_address(
                                 $server, $request, $request->ip_address, $request->authority_domain,
@@ -263,9 +263,9 @@ sub expand {
                             );
                         }
                         catch Mail::SPF::EDNSError with {};
-                        $p_macro_cache->{$authority_domain} = $value || 'unknown';
+                        $p_macro_cache->{$cache_key} = $value || 'unknown';
                     }
-                    $value = $p_macro_cache->{$authority_domain};
+                    $value = $p_macro_cache->{$cache_key};
                 }
                 elsif ($char eq 'v') {  # RFC 4408, 8.1/6/7
                     my $ip_address_version = $request->ip_address->version;

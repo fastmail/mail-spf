@@ -338,6 +338,7 @@ sub process {
     $request->state('authority_explanation', undef);
     $request->state('dns_interactive_terms_count', 0);
     $request->state('void_dns_lookups_count', 0);
+    $request->state('p_macro_cache', {});
 
     my $result;
     try {

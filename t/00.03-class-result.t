@@ -6,7 +6,7 @@ use Error ':try';
 use Net::DNS::Resolver::Programmable;
 use Net::DNS::RR;
 
-use Test::More tests => 32;
+use Test::More tests => 34;
 
 use Mail::SPF::Request;
 use Mail::SPF::Server;
@@ -144,8 +144,11 @@ BEGIN { use_ok('Mail::SPF::Result') }
 
 {
     my %zone = (
+        'example.com'               => [ 'TXT "v=spf1 exists:%{p}.allowed.example.com -all"' ],
         '9.0.168.192.in-addr.arpa'  => [ 'PTR mail.example.com' ],
-        'mail.example.com'          => [ 'A 192.168.0.9' ]
+        'mail.example.com'          => [ 'A 192.168.0.9' ],
+        'mail.example.com.allowed.example.com'
+                                    => [ 'A 127.0.0.2' ]
     );
     my @queries;
     my $resolver = Net::DNS::Resolver::Programmable->new(
@@ -191,4 +194,16 @@ BEGIN { use_ok('Mail::SPF::Result') }
     ok((not ref($explanation)),                         'Fail result authority_explanation() survives void look-ups limit')
         or diag("Exception: $explanation");
     like($explanation, qr/^Rejected by SPF record\.$/,          'Fail result authority_explanation() falls back to default explanation');
+
+    # The p macro value must not be reused for another check with a different
+    # IP address, e.g. of a clone of the request:
+    my $server  = Mail::SPF::Server->new(dns_resolver => $resolver);
+    my $request = Mail::SPF::Request->new(
+        identity        => 'foo@example.com',
+        ip_address      => '192.168.0.9'
+    );
+    isa_ok($server->process($request), 'Mail::SPF::Result::Pass',
+                                                        'Server process() with p macro');
+    isa_ok($server->process($request->new(ip_address => '192.168.0.10')), 'Mail::SPF::Result::Fail',
+                                                        'Server process() with p macro of request clone with other IP address');
 }
