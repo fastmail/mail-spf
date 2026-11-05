@@ -98,7 +98,9 @@
   - Security: limit spfd to 64 concurrent connections, 60 seconds per
     connection, and 32 request lines of at most 1024 bytes, so a local
     client can no longer exhaust the process table or memory with idle,
-    slow or overlong requests. spfd now also logs non-Mail::SPF errors
+    slow or overlong requests. A request still being processed after 60
+    seconds (e.g. because DNS servers are unreachable) gets a temperror
+    result. spfd now also logs non-Mail::SPF errors
     for a request, and no longer runs the child's code in the listening
     process if fork() fails
   - Security: spfd now creates its UNIX socket accessible to its owner

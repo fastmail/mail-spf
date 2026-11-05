@@ -47,8 +47,11 @@ starts listening for requests.  The supplementary groups are dropped as well.
 If only B<--set-user> is given, spfd changes to that user's primary group.
 
 spfd serves at most 64 connections at a time, and closes further connections
-immediately.  A connection is closed after 60 seconds, and when a request
-has more than 32 lines or a line longer than 1024 bytes.
+immediately.  A request must be answered within 60 seconds: if it hasn't been
+read completely by then, the connection is closed, and if processing it takes
+longer (e.g. because DNS servers are unreachable), the result is C<temperror>.
+A connection is also closed when a request has more than 32 lines or a line
+longer than 1024 bytes.
 
 The B<--version> form prints version information of spfd.  The B<--help> form
 prints usage information for spfd.
@@ -555,7 +558,8 @@ while (my $socket = $listen_socket->accept()) {
 
     my $time = gmtime;
 
-    # Don't let a slow or stalled client (or DNS) keep the process forever:
+    # Don't let a slow or stalled client (or DNS) keep the process forever.
+    # (Once the request has been read, a time-out is answered with temperror.)
     $SIG{ALRM} = sub {
         print("[$time] Request timed out\n");
         exit(1);
@@ -601,36 +605,20 @@ while (my $socket = $listen_socket->accept()) {
             helo_identity   => $request_values->{helo_identity}
         );
 
+        # Processing may take longer than the time-out if DNS servers are
+        # unreachable, in which case the result is a temporary error:
+        $SIG{ALRM} = sub {
+            print("[$time] Request timed out\n");
+            write_response($socket, $time, $spf_server->result_class('temperror')->new(
+                $spf_server, $request, 'Time-out on processing the request'));
+            $socket->close();
+            exit(1);
+        };
+
         my $result = $spf_server->process($request);
+        alarm(0);
 
-        my $response_values = {};
-        $response_values->{result}                  = $result->code;
-        $response_values->{local_explanation}       = $result->local_explanation;
-        $response_values->{authority_explanation}   = $result->authority_explanation
-            if $result->can('authority_explanation');
-        $response_values->{received_spf_header}     = $result->received_spf_header;
-        $response_values->{spf_record}              = $result->request->root_request->record
-            if defined($result->request->root_request->record);
-
-        # Legacy response values:
-        $response_values->{smtp_comment}            =
-            defined($response_values->{authority_explanation}) ?
-                $response_values->{authority_explanation}
-            :   $response_values->{local_explanation};
-        $response_values->{header_comment}          = $response_values->{local_explanation};
-
-        foreach my $key (qw(
-            result local_explanation authority_explanation received_spf_header spf_record
-            smtp_comment header_comment
-        )) {
-            defined($response_values->{$key}) or next;
-            # Values may contain text from DNS or the client, which must not
-            # be able to break out of their line and inject response lines:
-            my $value = Mail::SPF::Util->sanitize_string("$response_values->{$key}");
-            $socket->print("$key=$value\n");
-            print("[$time] W: $key=$value\n")
-                if $debug;
-        }
+        write_response($socket, $time, $result);
     }
     catch Mail::SPF::Exception with {
         my ($e) = @_;
@@ -649,6 +637,40 @@ while (my $socket = $listen_socket->accept()) {
 
 # Helper Functions
 ##############################################################################
+
+sub write_response {
+    my ($socket, $time, $result) = @_;
+
+    my $response_values = {};
+    $response_values->{result}                  = $result->code;
+    $response_values->{local_explanation}       = $result->local_explanation;
+    $response_values->{authority_explanation}   = $result->authority_explanation
+        if $result->can('authority_explanation');
+    $response_values->{received_spf_header}     = $result->received_spf_header;
+    $response_values->{spf_record}              = $result->request->root_request->record
+        if defined($result->request->root_request->record);
+
+    # Legacy response values:
+    $response_values->{smtp_comment}            =
+        defined($response_values->{authority_explanation}) ?
+            $response_values->{authority_explanation}
+        :   $response_values->{local_explanation};
+    $response_values->{header_comment}          = $response_values->{local_explanation};
+
+    foreach my $key (qw(
+        result local_explanation authority_explanation received_spf_header spf_record
+        smtp_comment header_comment
+    )) {
+        defined($response_values->{$key}) or next;
+        # Values may contain text from DNS or the client, which must not
+        # be able to break out of their line and inject response lines:
+        my $value = Mail::SPF::Util->sanitize_string("$response_values->{$key}");
+        $socket->print("$key=$value\n");
+        print("[$time] W: $key=$value\n")
+            if $debug;
+    }
+    return;
+}
 
 sub read_request_line {
     # Reads one line of at most max_request_line_length bytes, including the
